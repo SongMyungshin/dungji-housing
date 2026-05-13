@@ -19,7 +19,7 @@ CACHE_DIR = BASE_DIR / "cache"
 DOTENV_FILE = BASE_DIR / ".env"
 GEOCODE_CACHE_FILE = CACHE_DIR / "geocode_cache.json"
 ROUTE_CACHE_FILE = CACHE_DIR / "route_cache.json"
-ROUTE_DISPLAY_VERSION = 12
+ROUTE_DISPLAY_VERSION = 13
 ROUTE_DISPLAY_MODE = os.getenv("ROUTE_DISPLAY_MODE", "odsay").strip().lower()
 if ROUTE_DISPLAY_MODE not in {"odsay", "kakao"}:
     ROUTE_DISPLAY_MODE = "odsay"
@@ -38,7 +38,7 @@ CAR_REQUEST_TIMEOUT = 15
 TRANSIT_REQUEST_TIMEOUT = 10
 WALKING_REQUEST_TIMEOUT = 8
 CAR_ROUTE_WORKERS = 2
-TRANSIT_ROUTE_WORKERS = 4
+TRANSIT_ROUTE_WORKERS = 1 if ROUTE_DISPLAY_MODE == "kakao" else 4
 WALKABLE_AUTO_MAX_M = 700
 WALKABLE_OPTIONAL_MAX_M = 1000
 NEAR_DESTINATION_MAX_KM = 1.5
@@ -168,6 +168,7 @@ GEOCODE_CACHE = load_json_cache(GEOCODE_CACHE_FILE)
 ROUTE_CACHE = load_json_cache(ROUTE_CACHE_FILE)
 ROUTE_CACHE_LOCK = Lock()
 ROUTE_CACHE_DIRTY = False
+KAKAO_TRANSIT_FETCH_LOCK = Lock()
 LISTING_FRAME_CACHE: pd.DataFrame | None = None
 LISTING_FRAME_CACHE_SIGNATURE: tuple | None = None
 DISTRICT_CACHE: list[str] | None = None
@@ -1423,46 +1424,46 @@ def _fetch_kakao_transit_routes_with_status(start: dict, end: dict, top_n: int =
     cache_key = _display_cache_key(start, end, top_n)
     start_x, start_y = _wgs84_to_wcong(start["lng"], start["lat"])
     end_x, end_y = _wgs84_to_wcong(end["lng"], end["lat"])
-    try:
-        response = requests.get(
-            KAKAO_PUBTRANS_URL,
-            params={
-                "inputCoordSystem": "WCONGNAMUL",
-                "outputCoordSystem": "WCONGNAMUL",
-                "service": "map.daum.net",
-                "callback": "cb",
-                "sX": start_x,
-                "sY": start_y,
-                "sName": "출발",
-                "sid": "",
-                "eX": end_x,
-                "eY": end_y,
-                "eName": "도착",
-                "eid": "",
-            },
-            headers={
-                "Referer": "https://map.kakao.com/",
-                "User-Agent": "Mozilla/5.0",
-            },
-            timeout=TRANSIT_REQUEST_TIMEOUT,
-        )
-        response_received = True
-        http_status = response.status_code
-        if http_status != 200:
+    with KAKAO_TRANSIT_FETCH_LOCK:
+        try:
+            response = requests.get(
+                KAKAO_PUBTRANS_URL,
+                params={
+                    "inputCoordSystem": "WCONGNAMUL",
+                    "outputCoordSystem": "WCONGNAMUL",
+                    "service": "map.daum.net",
+                    "callback": "cb",
+                    "sX": start_x,
+                    "sY": start_y,
+                    "sName": "출발",
+                    "sid": "",
+                    "eX": end_x,
+                    "eY": end_y,
+                    "eName": "도착",
+                    "eid": "",
+                },
+                headers={
+                    "Referer": "https://map.kakao.com/",
+                    "User-Agent": "Mozilla/5.0",
+                },
+                timeout=TRANSIT_REQUEST_TIMEOUT,
+            )
+            http_status = response.status_code
+            if http_status != 200:
+                cached_routes = _find_cached_kakao_display_routes(start, end)
+                if cached_routes:
+                    return cached_routes[:top_n], {"kakao_live_status": "HTTP_REJECTED", "kakao_cache_fallback_used": True}
+                return [], {"kakao_live_status": "HTTP_REJECTED", "kakao_cache_fallback_used": False}
+            text = response.text.strip()
+            matched = re.search(r"cb\((.*)\)\s*$", text, re.DOTALL)
+            payload = json.loads(matched.group(1)) if matched else {}
+        except Exception as exc:
             cached_routes = _find_cached_kakao_display_routes(start, end)
             if cached_routes:
-                return cached_routes[:top_n], {"kakao_live_status": "HTTP_REJECTED", "kakao_cache_fallback_used": True}
-            return [], {"kakao_live_status": "HTTP_REJECTED", "kakao_cache_fallback_used": False}
-        text = response.text.strip()
-        matched = re.search(r"cb\((.*)\)\s*$", text, re.DOTALL)
-        payload = json.loads(matched.group(1)) if matched else {}
-    except Exception as exc:
-        cached_routes = _find_cached_kakao_display_routes(start, end)
-        if cached_routes:
+                live_status = "ENV_NETWORK_BLOCKED" if _has_winerror_10013(exc) else "REQUEST_EXCEPTION"
+                return cached_routes[:top_n], {"kakao_live_status": live_status, "kakao_cache_fallback_used": True}
             live_status = "ENV_NETWORK_BLOCKED" if _has_winerror_10013(exc) else "REQUEST_EXCEPTION"
-            return cached_routes[:top_n], {"kakao_live_status": live_status, "kakao_cache_fallback_used": True}
-        live_status = "ENV_NETWORK_BLOCKED" if _has_winerror_10013(exc) else "REQUEST_EXCEPTION"
-        return [], {"kakao_live_status": live_status, "kakao_cache_fallback_used": False}
+            return [], {"kakao_live_status": live_status, "kakao_cache_fallback_used": False}
 
     routes = (((payload.get("in_local") or {}).get("routes")) or [])[:top_n]
     parsed_routes = []
@@ -1883,9 +1884,7 @@ def _display_segment_color(step_type: str, line_name: str = "", color_hint: str 
     if step_type == "walk":
         return "#8b949e"
     if step_type == "bus":
-        normalized = normalized_name.upper()
-        if not normalized:
-            normalized = normalized_hint.upper()
+        normalized = normalized_name.upper() or normalized_hint.upper()
         if not normalized:
             return "#15803d"
         if normalized.startswith("M") or re.match(r"^9\d{3,}$", normalized):
@@ -1918,32 +1917,34 @@ def _display_segment_color(step_type: str, line_name: str = "", color_hint: str 
             return "#16a34a"
         return "#15803d"
     if step_type == "subway":
-        line_map = {
-            "1호선": "#0d3692",
-            "2호선": "#33a23d",
-            "3호선": "#fe5b10",
-            "4호선": "#32a1c8",
-            "5호선": "#8b50a4",
-            "6호선": "#c55c1d",
-            "7호선": "#54640d",
-            "8호선": "#f14c82",
-            "9호선": "#aa9872",
-            "경의중앙선": "#77c4a3",
-            "공항철도": "#0090d2",
-            "경춘선": "#178c72",
-            "수인분당선": "#f5a200",
-            "신분당선": "#d4003b",
-            "우이신설선": "#b7c450",
-            "서해선": "#81a914",
-            "신림선": "#6789ca",
-            "김포골드라인": "#a17800",
-            "용인경전철": "#6fb245",
-            "의정부경전철": "#f08200",
-            "인천1호선": "#7ca8d5",
-            "인천2호선": "#ed8b00",
-        }
-        matched_key = next((key for key in line_map if key in normalized_name), None)
-        return line_map.get(matched_key, "#ea580c")
+        subway_colors = [
+            (("1호선", "1호"), "#0d3692"),
+            (("2호선", "2호"), "#33a23d"),
+            (("3호선", "3호"), "#fe5b10"),
+            (("4호선", "4호"), "#32a1c8"),
+            (("5호선", "5호"), "#8b50a4"),
+            (("6호선", "6호"), "#c55c1d"),
+            (("7호선", "7호"), "#54640d"),
+            (("8호선", "8호"), "#f14c82"),
+            (("9호선", "9호"), "#aa9872"),
+            (("경의중앙선", "경의중앙"), "#77c4a3"),
+            (("공항철도", "공항"), "#0090d2"),
+            (("경춘선", "경춘"), "#178c72"),
+            (("수인분당선", "수인분당"), "#f5a200"),
+            (("신분당선", "신분당"), "#d4003b"),
+            (("우이신설선", "우이신설"), "#b7c450"),
+            (("서해선", "서해"), "#81a914"),
+            (("신림선", "신림"), "#6789ca"),
+            (("김포골드라인", "김포골드"), "#a17800"),
+            (("용인경전철", "용인경전철"), "#6fb245"),
+            (("의정부경전철", "의정부경전철"), "#f08200"),
+            (("인천1호선", "인천1"), "#7ca8d5"),
+            (("인천2호선", "인천2"), "#ed8b00"),
+        ]
+        for aliases, color in subway_colors:
+            if any(alias in normalized_name for alias in aliases):
+                return color
+        return "#ea580c"
     return "#2b6ef3"
 
 

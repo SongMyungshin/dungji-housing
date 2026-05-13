@@ -3084,34 +3084,42 @@
       return String(name || "").trim().replaceAll(" ", "");
     }
 
+    function normalizedRouteLabel(name) {
+      return normalizeLineName(name).toLowerCase();
+    }
+
+    function lineMatches(name, aliases) {
+      const normalized = normalizedRouteLabel(name);
+      return aliases.some((alias) => normalized.includes(normalizedRouteLabel(alias)));
+    }
+
     function subwayLineColor(name) {
-      const normalized = normalizeLineName(name);
-      const lineMap = {
-        "1호선": "#0d3692",
-        "2호선": "#33a23d",
-        "3호선": "#fe5b10",
-        "4호선": "#32a1c8",
-        "5호선": "#8b50a4",
-        "6호선": "#c55c1d",
-        "7호선": "#54640d",
-        "8호선": "#f14c82",
-        "9호선": "#aa9872",
-        "경의중앙선": "#77c4a3",
-        "공항철도": "#0090d2",
-        "경춘선": "#178c72",
-        "수인분당선": "#f5a200",
-        "신분당선": "#d4003b",
-        "우이신설선": "#b7c450",
-        "서해선": "#81a914",
-        "신림선": "#6789ca",
-        "김포골드라인": "#a17800",
-        "용인경전철": "#6fb245",
-        "의정부경전철": "#f08200",
-        "인천1호선": "#7ca8d5",
-        "인천2호선": "#ed8b00",
-      };
-      const matchedKey = Object.keys(lineMap).find((key) => normalized.includes(key));
-      return matchedKey ? lineMap[matchedKey] : "#ea580c";
+      const lineMap = [
+        [["1호선", "1호"], "#0d3692"],
+        [["2호선", "2호"], "#33a23d"],
+        [["3호선", "3호"], "#fe5b10"],
+        [["4호선", "4호"], "#32a1c8"],
+        [["5호선", "5호"], "#8b50a4"],
+        [["6호선", "6호"], "#c55c1d"],
+        [["7호선", "7호"], "#54640d"],
+        [["8호선", "8호"], "#f14c82"],
+        [["9호선", "9호"], "#aa9872"],
+        [["경의중앙선", "경의중앙"], "#77c4a3"],
+        [["공항철도", "공항"], "#0090d2"],
+        [["경춘선", "경춘"], "#178c72"],
+        [["수인분당선", "수인분당"], "#f5a200"],
+        [["신분당선", "신분당"], "#d4003b"],
+        [["우이신설선", "우이신설"], "#b7c450"],
+        [["서해선", "서해"], "#81a914"],
+        [["신림선", "신림"], "#6789ca"],
+        [["김포골드라인", "김포골드"], "#a17800"],
+        [["용인경전철", "용인경전철"], "#6fb245"],
+        [["의정부경전철", "의정부경전철"], "#f08200"],
+        [["인천1호선", "인천1"], "#7ca8d5"],
+        [["인천2호선", "인천2"], "#ed8b00"],
+      ];
+      const matched = lineMap.find(([aliases]) => lineMatches(name, aliases));
+      return matched ? matched[1] : "#ea580c";
     }
 
     function busLineColor(name) {

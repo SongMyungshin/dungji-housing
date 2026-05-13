@@ -337,12 +337,31 @@ def _extract_geo_constraints(text: str, current_state: dict | None = None) -> di
     preferred = list(dict.fromkeys(current.get("preferred_districts", []) or []))
     normalized, compact = _text_variants(text)
 
-    district_hits = re.findall(r"([가-힣]{2,10}구)", normalized)
+    district_pattern = r"([가-힣]{2,10}구)"
+
+    clause_candidates = [part.strip() for part in re.split(r"[\n,./·]+", normalized) if part.strip()]
+    for clause in clause_candidates:
+        clause_districts = [district.strip() for district in re.findall(district_pattern, clause) if district.strip()]
+        if not clause_districts:
+            continue
+        if _contains_any(clause, ["싫", "피", "제외", "빼"]):
+            for district in clause_districts:
+                if district not in excluded:
+                    excluded.append(district)
+            continue
+        if _contains_any(clause, ["좋", "선호", "근처", "쪽", "였으면"]):
+            for district in clause_districts:
+                if district not in preferred:
+                    preferred.append(district)
+
+    district_hits = re.findall(district_pattern, normalized)
     for district in district_hits:
         district = district.strip()
         if not district:
             continue
         window_patterns = [f"{district}는 싫", f"{district} 싫", f"{district} 피", f"{district} 제외", f"{district}은 싫", f"{district}은 피"]
+        if district in excluded:
+            continue
         if _contains_any(text, window_patterns):
             if district not in excluded:
                 excluded.append(district)
@@ -979,7 +998,7 @@ def parse_query_with_gemini(query_text: str, current_state: dict | None = None) 
     if not parsed:
         return base
 
-    merged = _merge_request_state(current_state, parsed)
+    merged = _merge_request_state(base, parsed)
     if _is_living_access_request(query_text) and not ((current_state or {}).get("hard_constraints") or {}).get("max_commute_minutes"):
         merged.setdefault("hard_constraints", {})["max_commute_minutes"] = None
     merged["needs_clarification"] = _extract_needs_clarification(query_text, merged)
