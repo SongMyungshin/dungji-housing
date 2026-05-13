@@ -71,6 +71,7 @@
       text-align: center;
       color: var(--muted);
       padding: 24px;
+      pointer-events: none;
       background:
         radial-gradient(circle at 20% 20%, rgba(43, 110, 243, 0.16), transparent 26%),
         radial-gradient(circle at 78% 24%, rgba(14, 165, 233, 0.18), transparent 24%),
@@ -98,6 +99,7 @@
       inset: 0;
       background: rgba(14, 23, 38, 0.18);
       backdrop-filter: blur(2px);
+      pointer-events: none;
     }
 
     .start-card {
@@ -4658,7 +4660,6 @@
     function startApp() {
       initInputs();
       initEvents();
-      initMap();
       renderDealSelection();
       resetResults();
       updateSummary();
@@ -4669,11 +4670,12 @@
     }
   </script>
   <script src="/js/system-switcher.js"></script>
+  <script>startApp();</script>
   {% if kakao_js_key %}
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_js_key }}&autoload=false"
-    onload="kakao.maps.load(noOp); kakao.maps.load(startApp);"></script>
+    onload="kakao.maps.load(initMap);"></script>
   {% else %}
-  <script>startApp();</script>
+  <script>initMap();</script>
   {% endif %}
 </body>
 
