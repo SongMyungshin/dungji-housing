@@ -25,6 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = BASE_DIR / "templates"
 MERGE_BUNDLE_DIR = BASE_DIR / "website_merge_bundle"
 MERGE_FRONTEND_DIR = MERGE_BUNDLE_DIR / "frontend"
+IS_VERCEL_DEPLOYMENT = bool(os.getenv("VERCEL"))
 if str(MERGE_BUNDLE_DIR) not in sys.path:
     sys.path.insert(0, str(MERGE_BUNDLE_DIR))
 jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=select_autoescape(["html", "xml"]))
@@ -66,6 +67,8 @@ def route_source_distribution(payload: dict) -> dict:
 
 def get_odsay_preflight_status() -> str:
     global TRANSIT_PREFLIGHT_CACHE
+    if IS_VERCEL_DEPLOYMENT:
+        return "SKIPPED_ON_VERCEL"
     if TRANSIT_PREFLIGHT_CACHE is None:
         try:
             TRANSIT_PREFLIGHT_CACHE = run_preflight()
@@ -76,9 +79,20 @@ def get_odsay_preflight_status() -> str:
 
 def get_transit_preflight_provider() -> str:
     global TRANSIT_PREFLIGHT_CACHE
+    if IS_VERCEL_DEPLOYMENT:
+        return "VERCEL"
     if TRANSIT_PREFLIGHT_CACHE is None:
         get_odsay_preflight_status()
     return str((TRANSIT_PREFLIGHT_CACHE or {}).get("provider") or "UNKNOWN")
+
+
+def parse_user_query(query_text: str, current_state: dict | None = None) -> dict:
+    if IS_VERCEL_DEPLOYMENT:
+        return parse_query_text(query_text, current_state)
+    try:
+        return parse_query_with_gemini(query_text, current_state)
+    except Exception:
+        return parse_query_text(query_text, current_state)
 
 
 def _serve_binary_file(handler: BaseHTTPRequestHandler, path: Path) -> None:
@@ -90,6 +104,9 @@ def _serve_binary_file(handler: BaseHTTPRequestHandler, path: Path) -> None:
     handler.send_response(HTTPStatus.OK)
     handler.send_header("Content-Type", content_type or "application/octet-stream")
     handler.send_header("Content-Length", str(len(body)))
+    if content_type and content_type.startswith("text/"):
+        handler.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        handler.send_header("Pragma", "no-cache")
     handler.end_headers()
     handler.wfile.write(body)
 
@@ -108,6 +125,8 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
         self.end_headers()
         self.wfile.write(body)
 
@@ -140,15 +159,13 @@ class AppHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/recommendations":
             query = parse_qs(parsed.query)
+            allow_gemini = bool(GEMINI_API_KEY) and not IS_VERCEL_DEPLOYMENT
             workplace_address = query.get("workplace_address", [""])[0].strip()
             workplace_lat = query.get("workplace_lat", [""])[0].strip()
             workplace_lng = query.get("workplace_lng", [""])[0].strip()
             query_text = query.get("query_text", [""])[0].strip()
             if query_text:
-                try:
-                    extracted = parse_query_with_gemini(query_text)
-                except Exception:
-                    extracted = parse_query_text(query_text)
+                extracted = parse_user_query(query_text)
             else:
                 extracted = {}
             extracted = coalesce_constraints(extracted, query)
@@ -175,7 +192,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             missing_fields = find_missing_fields(extracted, require_transport_mode=False)
             if missing_fields:
-                self._json_response({"workplace": None, "recommendations": [], "debug": [], "meta": {"message": build_follow_up_question(missing_fields), "need_more_info": True, "missing_fields": missing_fields, "warnings": [], "total_candidates": 0, "transport_mode": extracted.get("transport_mode"), "parsed_query": {"query_text": query_text, "transport_mode": extracted.get("transport_mode"), "deposit_max": extracted.get("deposit_max"), "rent_max": extracted.get("rent_max"), "max_commute_minutes": extracted.get("max_commute_minutes"), "transport": extracted.get("transport", {}), "car_time_profile": extracted.get("car_time_profile", {}), "geo_constraints": extracted.get("geo_constraints", {}), "tradeoff_policy": extracted.get("tradeoff_policy", {}), "must_have": extracted.get("must_have", []), "nice_to_have": extracted.get("nice_to_have", []), "used_llm": bool(GEMINI_API_KEY)}}})
+                self._json_response({"workplace": None, "recommendations": [], "debug": [], "meta": {"message": build_follow_up_question(missing_fields), "need_more_info": True, "missing_fields": missing_fields, "warnings": [], "total_candidates": 0, "transport_mode": extracted.get("transport_mode"), "parsed_query": {"query_text": query_text, "transport_mode": extracted.get("transport_mode"), "deposit_max": extracted.get("deposit_max"), "rent_max": extracted.get("rent_max"), "max_commute_minutes": extracted.get("max_commute_minutes"), "transport": extracted.get("transport", {}), "car_time_profile": extracted.get("car_time_profile", {}), "geo_constraints": extracted.get("geo_constraints", {}), "tradeoff_policy": extracted.get("tradeoff_policy", {}), "must_have": extracted.get("must_have", []), "nice_to_have": extracted.get("nice_to_have", []), "used_llm": allow_gemini}}})
                 return
             try:
                 payload = recommend(workplace_address, extracted)
@@ -217,13 +234,15 @@ class AppHandler(BaseHTTPRequestHandler):
                 "confidence": extracted.get("confidence"),
                 "needs_clarification": extracted.get("needs_clarification", []),
                 "summary_conditions": extracted.get("summary_conditions", []),
-                "used_llm": bool(GEMINI_API_KEY),
+                "used_llm": allow_gemini,
             }
             payload["meta"]["route_source_distribution"] = route_source_distribution(payload)
             payload["meta"]["odsay_preflight_status"] = get_odsay_preflight_status()
             payload["meta"]["transit_preflight_status"] = get_odsay_preflight_status()
             payload["meta"]["transit_preflight_provider"] = get_transit_preflight_provider()
             with_llm = query.get("with_llm", ["true"])[0].strip().lower() != "false"
+            if IS_VERCEL_DEPLOYMENT:
+                with_llm = False
             if with_llm:
                 try:
                     payload = enrich_recommendations_with_llm(payload, extracted)
@@ -245,6 +264,7 @@ class AppHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/parse-query":
             query_text = parse_qs(parsed.query).get("q", [""])[0].strip()
+            allow_gemini = bool(GEMINI_API_KEY) and not IS_VERCEL_DEPLOYMENT
             if not query_text:
                 self._json_response({
                     "parsed": {
@@ -264,15 +284,12 @@ class AppHandler(BaseHTTPRequestHandler):
                     },
                     "missing_fields": [],
                     "message": "자연어 조건을 입력해 주세요.",
-                    "used_llm": bool(GEMINI_API_KEY),
+                    "used_llm": allow_gemini,
                 })
                 return
-            try:
-                extracted = parse_query_with_gemini(query_text)
-            except Exception:
-                extracted = parse_query_text(query_text)
+            extracted = parse_user_query(query_text)
             missing_fields = find_missing_fields(extracted, require_transport_mode=False)
-            self._json_response({"parsed": extracted, "missing_fields": missing_fields, "message": build_follow_up_question(missing_fields) if missing_fields else "", "used_llm": bool(GEMINI_API_KEY)})
+            self._json_response({"parsed": extracted, "missing_fields": missing_fields, "message": build_follow_up_question(missing_fields) if missing_fields else "", "used_llm": allow_gemini})
             return
         if parsed.path == "/api/chat-turn":
             query = parse_qs(parsed.query)
@@ -302,7 +319,14 @@ class AppHandler(BaseHTTPRequestHandler):
                 "deposit_decided": query.get("deposit_decided", ["false"])[0].strip().lower() == "true",
                 "rent_decided": query.get("rent_decided", ["false"])[0].strip().lower() == "true",
             }
-            payload = chat_turn_with_gemini(query.get("workplace_name", [""])[0].strip(), query.get("workplace_address", [""])[0].strip(), current_state, query.get("message", [""])[0].strip(), REQUEST_TIMEOUT)
+            payload = chat_turn_with_gemini(
+                query.get("workplace_name", [""])[0].strip(),
+                query.get("workplace_address", [""])[0].strip(),
+                current_state,
+                query.get("message", [""])[0].strip(),
+                REQUEST_TIMEOUT,
+                allow_gemini=not IS_VERCEL_DEPLOYMENT,
+            )
             self._json_response(payload)
             return
         if parsed.path == "/api/workplace-search":

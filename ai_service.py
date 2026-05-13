@@ -989,8 +989,10 @@ def _call_gemini_parser(query_text: str, current_state: dict | None = None) -> d
     return json.loads(text)
 
 
-def parse_query_with_gemini(query_text: str, current_state: dict | None = None) -> dict:
+def parse_query_with_gemini(query_text: str, current_state: dict | None = None, *, allow_gemini: bool = True) -> dict:
     base = parse_query_text(query_text, current_state)
+    if not allow_gemini:
+        return base
     try:
         parsed = _call_gemini_parser(query_text, current_state)
     except Exception:
@@ -1038,9 +1040,17 @@ def _build_stage_question(state: dict) -> str:
     return "생활환경에서 중요하게 보는 조건이 있으면 알려주세요. 예: 코인빨래방, 공원, 병원, 편의점"
 
 
-def chat_turn_with_gemini(workplace_name: str, workplace_address: str, current_state: dict, message: str, timeout: int = REQUEST_TIMEOUT) -> dict:
+def chat_turn_with_gemini(
+    workplace_name: str,
+    workplace_address: str,
+    current_state: dict,
+    message: str,
+    timeout: int = REQUEST_TIMEOUT,
+    *,
+    allow_gemini: bool = True,
+) -> dict:
     del workplace_name, workplace_address, timeout
-    parsed = parse_query_with_gemini(message, current_state)
+    parsed = parse_query_with_gemini(message, current_state, allow_gemini=allow_gemini)
     missing_fields = find_missing_fields(parsed, require_transport_mode=not bool((current_state or {}).get("transport_mode")))
     clarification_notes = parsed.get("needs_clarification") or []
     need_more_info = bool(missing_fields or clarification_notes)

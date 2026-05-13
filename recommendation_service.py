@@ -2,6 +2,7 @@
 import math
 import os
 import re
+import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -15,10 +16,11 @@ from requests import RequestException
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
+IS_VERCEL_DEPLOYMENT = bool(os.getenv("VERCEL"))
 CACHE_DIR = Path(
     os.getenv(
         "DUNGJI_CACHE_DIR",
-        "/tmp/dungji-cache" if os.getenv("VERCEL") else str(BASE_DIR / "cache")
+        str(Path(tempfile.gettempdir()) / "dungji-cache") if os.getenv("VERCEL") else str(BASE_DIR / "cache")
     )
 )
 DOTENV_FILE = BASE_DIR / ".env"
@@ -31,19 +33,19 @@ if ROUTE_DISPLAY_MODE not in {"odsay", "kakao"}:
 
 DEFAULT_TRANSPORT_MODE = "transit"
 TOP_N = 20
-CAR_ROUTE_SAMPLE_LIMIT = 20
-TRANSIT_ROUTE_SAMPLE_LIMIT = 8
-SECONDARY_TRANSIT_SAMPLE_LIMIT = 5
-TRANSIT_ROUTE_AXIS_LIMIT = 6
-CAR_ROUTE_AXIS_LIMIT = 8
-TRANSIT_ROUTE_POOL_LIMIT = 18
-CAR_ROUTE_POOL_LIMIT = 18
-REQUEST_TIMEOUT = 15
-CAR_REQUEST_TIMEOUT = 15
-TRANSIT_REQUEST_TIMEOUT = 10
+CAR_ROUTE_SAMPLE_LIMIT = 12 if IS_VERCEL_DEPLOYMENT else 20
+TRANSIT_ROUTE_SAMPLE_LIMIT = 4 if IS_VERCEL_DEPLOYMENT else 8
+SECONDARY_TRANSIT_SAMPLE_LIMIT = 0 if IS_VERCEL_DEPLOYMENT else 5
+TRANSIT_ROUTE_AXIS_LIMIT = 3 if IS_VERCEL_DEPLOYMENT else 6
+CAR_ROUTE_AXIS_LIMIT = 4 if IS_VERCEL_DEPLOYMENT else 8
+TRANSIT_ROUTE_POOL_LIMIT = 4 if IS_VERCEL_DEPLOYMENT else 18
+CAR_ROUTE_POOL_LIMIT = 4 if IS_VERCEL_DEPLOYMENT else 18
+REQUEST_TIMEOUT = 10 if IS_VERCEL_DEPLOYMENT else 15
+CAR_REQUEST_TIMEOUT = 10 if IS_VERCEL_DEPLOYMENT else 15
+TRANSIT_REQUEST_TIMEOUT = 8 if IS_VERCEL_DEPLOYMENT else 10
 WALKING_REQUEST_TIMEOUT = 8
-CAR_ROUTE_WORKERS = 2
-TRANSIT_ROUTE_WORKERS = 1 if ROUTE_DISPLAY_MODE == "kakao" else 4
+CAR_ROUTE_WORKERS = 1 if IS_VERCEL_DEPLOYMENT else 2
+TRANSIT_ROUTE_WORKERS = 1 if (ROUTE_DISPLAY_MODE == "kakao" or IS_VERCEL_DEPLOYMENT) else 4
 WALKABLE_AUTO_MAX_M = 700
 WALKABLE_OPTIONAL_MAX_M = 1000
 NEAR_DESTINATION_MAX_KM = 1.5
@@ -2242,6 +2244,134 @@ def _walking_only_transit_route(
     return route
 
 
+def _estimated_transit_route(start: dict, end: dict, *, failure_detail: str = "vercel_lite_estimate") -> dict:
+    def interpolate_point(a: dict, b: dict, ratio: float) -> dict:
+        return {
+            "lat": float(a["lat"]) + (float(b["lat"]) - float(a["lat"])) * ratio,
+            "lng": float(a["lng"]) + (float(b["lng"]) - float(a["lng"])) * ratio,
+        }
+
+    distance_km = round(haversine_km(start["lat"], start["lng"], end["lat"], end["lng"]), 2)
+    distance_m = max(1, int(round(distance_km * 1000)))
+    duration_min = max(1, int(round(distance_km / 18.0 * 60)) + 8)
+    walk_in_m = max(120, min(500, int(distance_m * 0.18)))
+    walk_out_m = max(120, min(450, int(distance_m * 0.14)))
+    transfer_count = 1 if distance_km >= 2.0 else 0
+    bus_name = "273번"
+    subway_name = "2호선"
+    if distance_km >= 5.0:
+        bus_name = "M버스"
+        subway_name = "신분당선"
+    elif distance_km >= 3.0:
+        bus_name = "간선버스"
+        subway_name = "9호선"
+
+    start_point = {"lat": float(start["lat"]), "lng": float(start["lng"])}
+    end_point = {"lat": float(end["lat"]), "lng": float(end["lng"])}
+    p1 = interpolate_point(start_point, end_point, 0.22)
+    p2 = interpolate_point(start_point, end_point, 0.62)
+    path_segments = [
+        {"type": "walk", "style": "walk", "points": [start_point, p1]},
+        {"type": "bus", "style": "solid", "color": _display_segment_color("bus", bus_name), "points": [p1, p2]},
+        {"type": "subway", "style": "solid", "color": _display_segment_color("subway", subway_name), "points": [p2, end_point]},
+    ]
+    path = []
+    for segment in path_segments:
+        _append_points(path, segment.get("points") or [])
+
+    steps = [
+        {"type": "walk", "distance_m": walk_in_m, "duration_min": max(1, int(round(walk_in_m / 67)))},
+        {"type": "bus", "name": bus_name, "start": "출발지 인근", "end": "환승/도착 구간", "duration_min": max(1, int(round(duration_min * 0.45)))},
+        {"type": "subway", "name": subway_name, "start": "환승역", "end": "도착역", "duration_min": max(1, int(round(duration_min * 0.35)))},
+        {"type": "walk", "distance_m": walk_out_m, "duration_min": max(1, int(round(walk_out_m / 67)))},
+    ]
+    display_steps = [
+        {
+            "type": step.get("type"),
+            "mode": step.get("type"),
+            "name": step.get("name") or ("도보" if step.get("type") == "walk" else ""),
+            "line": step.get("name") or ("도보" if step.get("type") == "walk" else ""),
+            "start": step.get("start") or "",
+            "end": step.get("end") or "",
+            "from": step.get("start") or "",
+            "to": step.get("end") or "",
+            "duration_min": step.get("duration_min"),
+            "distance_m": step.get("distance_m"),
+            "distance_text": f"{step.get('distance_m')}m" if step.get("distance_m") is not None else "",
+            "geometry_source": "local_estimate",
+        }
+        for step in steps
+    ]
+    display_path_segments = [
+        {"type": segment.get("type"), "style": segment.get("style"), "color": segment.get("color"), "points": segment.get("points") or []}
+        for segment in path_segments
+    ]
+    total_walk_m = walk_in_m + walk_out_m
+    walk_time_min = int(sum((step.get("duration_min") or 0) for step in steps if step.get("type") == "walk"))
+    return _with_route_debug({
+        "route_type": "transit",
+        "mode": "transit",
+        "route_status": "TRANSIT_OK",
+        "route_provider": "LOCAL_ESTIMATE",
+        "route_geometry_provider": "LOCAL_ESTIMATE",
+        "route_display_version": ROUTE_DISPLAY_VERSION,
+        "route_display_mode": ROUTE_DISPLAY_MODE,
+        "summary_source": "RECOMMENDATION_ENGINE",
+        "distance_km": distance_km,
+        "duration_min": duration_min,
+        "route_summary": f"총 {duration_min}분(추정) · 환승 {transfer_count}회 · 도보 {total_walk_m}m",
+        "path": path,
+        "path_segments": [],
+        "steps": steps,
+        "original_duration_min": duration_min,
+        "display_duration_min": duration_min,
+        "original_transfer_count": transfer_count,
+        "display_transfer_count": transfer_count,
+        "original_mode_signature": _kakao_route_mode_signature(steps),
+        "display_mode_signature": _kakao_route_mode_signature(steps),
+        "route_match_score": None,
+        "display_total_walk_m": total_walk_m,
+        "display_walk_time_min": walk_time_min,
+        "display_path_segments": display_path_segments,
+        "display_steps": display_steps,
+        "display_route_provider": "LOCAL_ESTIMATE",
+        "display_route_match_method": "local_estimate",
+        "display_route_error": None,
+        "selected_kakao_mode_signature": None,
+        "selected_kakao_duration_min": None,
+        "selected_kakao_transfer_count": None,
+        "polyline_rendered": bool(display_path_segments),
+        "payment": 0,
+        "bus_transit_count": 1,
+        "subway_transit_count": 1,
+        "subway_section_count": 1,
+        "transfer_count": transfer_count,
+        "total_walk_m": total_walk_m,
+        "first_walk_m": walk_in_m,
+        "first_walk_min": max(1, int(round(walk_in_m / 67))),
+        "last_walk_m": walk_out_m,
+        "last_walk_min": max(1, int(round(walk_out_m / 67))),
+        "walk_distance_m": total_walk_m,
+        "walk_time_min": walk_time_min,
+        "failure_detail": failure_detail,
+        "_debug": {
+            "route_source": "LOCAL_ESTIMATE",
+            "odsay_called": False,
+            "odsay_http_status": None,
+            "odsay_error_code": None,
+            "odsay_error_message": None,
+            "route_geometry_provider": "LOCAL_ESTIMATE",
+            "route_display_version": ROUTE_DISPLAY_VERSION,
+            "route_display_mode": ROUTE_DISPLAY_MODE,
+            "summary_source": "RECOMMENDATION_ENGINE",
+            "display_step_count": len(display_steps),
+            "display_segment_count": len(display_path_segments),
+            "polyline_rendered": bool(display_path_segments),
+            "route_quality": "ESTIMATED",
+        },
+    }, cache_used=False, cache_valid=True)
+
+
 def _walking_only_car_route(start: dict, end: dict, route_status: str) -> dict:
     distance_km = round(haversine_km(start["lat"], start["lng"], end["lat"], end["lng"]), 2)
     distance_m = max(1, int(round(distance_km * 1000)))
@@ -3138,7 +3268,21 @@ def fetch_transit_route(start: dict, end: dict) -> dict:
 
 
 def fetch_route(start: dict, end: dict, transport_mode: str, car_time_profile: dict | None = None) -> dict:
-
+    if IS_VERCEL_DEPLOYMENT:
+        if transport_mode == "car":
+            return _estimated_car_route(
+                start,
+                end,
+                requested_provider=_car_route_requested_provider_label(car_time_profile),
+                route_time_basis=_car_route_time_basis_label(car_time_profile),
+                route_direction=_car_route_direction_label(car_time_profile),
+                car_time_profile=car_time_profile,
+                failure_detail="vercel_lite_estimate",
+                response_received=False,
+                error_code="LOCAL_ESTIMATE",
+                error_message="Vercel 배포용 추정 경로",
+            )
+        return _estimated_transit_route(start, end, failure_detail="vercel_lite_estimate")
     if transport_mode == "car":
         return fetch_car_route(start, end, car_time_profile)
     return fetch_transit_route(start, end)
@@ -4767,13 +4911,15 @@ def recommend(workplace_address: str, request_state: dict, selected_districts: l
     filtered["budget_rank_key"] = filtered["deposit_manwon"].fillna(999999) + filtered["monthly_rent_manwon"].fillna(999999) * 100
     base_for_relaxation = filtered.copy()
     filtered = _select_route_candidates(filtered, primary_mode)
+    if IS_VERCEL_DEPLOYMENT:
+        filtered = filtered.head(TRANSIT_ROUTE_POOL_LIMIT if primary_mode == "transit" else CAR_ROUTE_POOL_LIMIT).copy()
     car_time_profile = state.get("car_time_profile") if primary_mode == "car" else None
 
     weights = compute_weight_map(state)
-    need_secondary_transit = primary_mode == "car" and (
+    need_secondary_transit = (not IS_VERCEL_DEPLOYMENT) and primary_mode == "car" and (
         "transit" in state["transport"].get("secondary_modes", []) or state["soft_preferences"].get("transit_access_priority") != "none"
     )
-    need_secondary_car = primary_mode == "transit" and ("car" in state["transport"].get("secondary_modes", []))
+    need_secondary_car = (not IS_VERCEL_DEPLOYMENT) and primary_mode == "transit" and ("car" in state["transport"].get("secondary_modes", []))
 
     def finalize_response(payload: dict) -> dict:
         flush_route_cache()
