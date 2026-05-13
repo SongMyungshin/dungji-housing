@@ -15,7 +15,12 @@ from requests import RequestException
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
-CACHE_DIR = BASE_DIR / "cache"
+CACHE_DIR = Path(
+    os.getenv(
+        "DUNGJI_CACHE_DIR",
+        "/tmp/dungji-cache" if os.getenv("VERCEL") else str(BASE_DIR / "cache")
+    )
+)
 DOTENV_FILE = BASE_DIR / ".env"
 GEOCODE_CACHE_FILE = CACHE_DIR / "geocode_cache.json"
 ROUTE_CACHE_FILE = CACHE_DIR / "route_cache.json"
