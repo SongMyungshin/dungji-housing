@@ -1,0 +1,98 @@
+[
+  {
+    "name": "연세대학교 신촌캠퍼스",
+    "type": "real_data_review",
+    "workplace": {
+      "name": "연세대학교 신촌캠퍼스",
+      "address": "서울 서대문구 연세로 50",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "selected_districts": [],
+    "filters": {
+      "deal_type": "월세",
+      "max_deposit": 1200,
+      "max_monthly": 60,
+      "transport_mode": "transit",
+      "max_commute_min": 25
+    }
+  },
+  {
+    "name": "가천대학교",
+    "type": "real_data_review",
+    "workplace": {
+      "name": "가천대학교",
+      "address": "경기 성남시 수정구 성남대로 1342",
+      "lat": 37.4512348695085,
+      "lng": 127.12939432624
+    },
+    "selected_districts": [],
+    "filters": {
+      "deal_type": "월세",
+      "max_deposit": 1000,
+      "max_monthly": 55,
+      "transport_mode": "transit",
+      "max_commute_min": 45,
+      "secondary_modes": [
+        "car"
+      ]
+    }
+  },
+  {
+    "name": "강남역 또는 역삼역",
+    "type": "real_data_review",
+    "workplace": {
+      "name": "강남역",
+      "address": "서울 강남구 강남대로 396",
+      "lat": 37.4981646510326,
+      "lng": 127.028307900881
+    },
+    "selected_districts": [],
+    "filters": {
+      "deal_type": "월세",
+      "max_deposit": 1500,
+      "max_monthly": 80,
+      "transport_mode": "transit",
+      "max_commute_min": 35,
+      "secondary_modes": [
+        "car"
+      ]
+    }
+  },
+  {
+    "name": "자동차 기준 추천 시나리오",
+    "type": "real_data_review",
+    "workplace": {
+      "name": "연세대학교 신촌캠퍼스",
+      "address": "서울 서대문구 연세로 50",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "selected_districts": [],
+    "filters": {
+      "deal_type": "월세",
+      "max_deposit": 1200,
+      "max_monthly": 60,
+      "transport_mode": "car",
+      "max_commute_min": 30
+    }
+  },
+  {
+    "name": "조건이 빡센 시나리오",
+    "type": "real_data_review",
+    "workplace": {
+      "name": "연세대학교 신촌캠퍼스",
+      "address": "서울 서대문구 연세로 50",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "selected_districts": [],
+    "filters": {
+      "deal_type": "월세",
+      "max_deposit": 300,
+      "max_monthly": 20,
+      "transport_mode": "transit",
+      "max_commute_min": 10
+    }
+  }
+]

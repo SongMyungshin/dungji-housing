@@ -1,0 +1,839 @@
+[
+  {
+    "id": "nl_001",
+    "input": "성동구는 싫고, 회사 근처가 좋긴 한데 너무 번잡한 곳은 싫어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "geo_constraints.excluded_districts": [
+        "성동구"
+      ],
+      "soft_preferences.commute_time_priority": "high",
+      "soft_preferences.walking_distance_priority": "high",
+      "unsupported_preferences": [
+        "번잡한 상권"
+      ]
+    },
+    "expected_ui_labels": [
+      "제외 지역: 성동구",
+      "현재 데이터로 직접 판단하기 어려운 조건: 번잡한 상권",
+      "꼭 필요한 조건: 직장/학교 근처"
+    ],
+    "workplace": {
+      "name": "연세대학교 신촌캠퍼스",
+      "address": "서울 서대문구 연세로 50",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "recommendation_assertions": {
+      "excluded_districts_not_in_results": [
+        "성동구"
+      ]
+    }
+  },
+  {
+    "id": "nl_002",
+    "input": "강남구 쪽은 괜찮고, 지하철이 별로 없었으면 좋겠어요. 학교 근처면 좋겠어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "geo_constraints.preferred_districts": [
+        "강남구"
+      ],
+      "route_preferences.avoid_subway": true,
+      "soft_preferences.transit_access_priority": "high"
+    },
+      "expected_ui_labels": [
+        "선호 지역: 강남구",
+        "지하철은 최소화",
+        "꼭 필요한 조건: 직장/학교 근처"
+      ]
+  },
+  {
+    "id": "nl_003",
+    "input": "보증금은 1000만원 이하, 월세는 40만원 이하로만 보고 싶어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "hard_constraints.deposit_max": 1000,
+      "hard_constraints.rent_max": 40,
+      "soft_preferences.budget_priority": "high"
+    },
+    "expected_ui_labels": [
+      "예산 조건: 보증금 1000만원 이하, 월세 40만원 이하"
+    ]
+  },
+  {
+    "id": "nl_004",
+    "input": "출근은 편해야 하고, 월세가 조금 높아도 통근이 편했으면 좋겠어요. 환승은 적으면 좋겠어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "soft_preferences.commute_time_priority": "high",
+      "soft_preferences.transfer_count_priority": "high",
+      "tradeoff_policy.pay_more_for_commute": true
+    },
+      "expected_ui_labels": [
+        "환승은 적을수록 좋음",
+        "통근 우선 / 비용 일부 양보"
+      ]
+  },
+  {
+    "id": "nl_005",
+    "input": "너무 외진 곳은 싫고, 사람이 어느 정도 있는 동네가 좋습니다.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "geo_constraints.avoid_remote_area": true,
+      "unsupported_preferences": [
+        "적당한 유동인구"
+      ]
+    },
+    "expected_ui_labels": [
+      "외진 곳 회피",
+      "현재 데이터로 직접 판단하기 어려운 조건: 적당한 유동인구"
+    ]
+  },
+  {
+    "id": "nl_006",
+    "input": "조용한 동네가 좋고, 번잡한 상권은 피하고 싶어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "unsupported_preferences": [
+        "조용한 동네",
+        "번잡한 상권"
+      ]
+    },
+    "expected_ui_labels": [
+      "현재 데이터로 직접 판단하기 어려운 조건: 조용한 동네, 번잡한 상권"
+    ]
+  },
+  {
+    "id": "nl_007",
+    "input": "예산이 더 중요하고 역까지 조금 걸어도 괜찮아요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "tradeoff_policy.pay_more_for_commute": false,
+      "tradeoff_policy.accept_longer_walk_for_lower_rent": true,
+      "soft_preferences.budget_priority": "high"
+    },
+    "expected_ui_labels": [
+      "비용 우선",
+      "도보 길어도 비용 절감 허용"
+    ]
+  },
+  {
+    "id": "nl_008",
+    "input": "직장 근처면 좋지만 지하철은 최대한 피하고 싶어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "soft_preferences.commute_time_priority": "high",
+      "soft_preferences.transit_access_priority": "high",
+      "route_preferences.avoid_subway": true
+    },
+      "expected_ui_labels": [
+        "지하철은 최소화",
+        "추가 질문 필요: 직주근접 세부 기준",
+        "꼭 필요한 조건: 직장/학교 근처"
+      ]
+  },
+  {
+    "id": "nl_009",
+    "input": "성동구는 싫고, 강남구 쪽은 괜찮아요. 집 주변에 카페가 많았으면 좋겠어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "geo_constraints.excluded_districts": [
+        "성동구"
+      ],
+      "geo_constraints.preferred_districts": [
+        "강남구"
+      ]
+    },
+    "expected_ui_labels": [
+      "제외 지역: 성동구",
+      "선호 지역: 강남구"
+    ],
+    "workplace": {
+      "name": "연세대학교 신촌캠퍼스",
+      "address": "서울 서대문구 연세로 50",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "recommendation_assertions": {
+      "excluded_districts_not_in_results": [
+        "성동구"
+      ]
+    }
+  },
+  {
+    "id": "nl_010",
+    "input": "학교와 가까운 곳이 좋고, 통근시간은 40분 넘기면 싫어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "soft_preferences.commute_time_priority": "high",
+      "soft_preferences.walking_distance_priority": "high",
+      "hard_constraints.max_commute_minutes": 40
+    },
+    "expected_ui_labels": [
+      "통근시간 40분 이내",
+      "추가 질문 필요: 직주근접 세부 기준",
+      "꼭 필요한 조건: 직장/학교 근처"
+    ]
+  },
+  {
+    "id": "nl_011",
+    "input": "주변에 카페나 병원이 가까웠으면 좋겠어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "living_preferences.cafe.selected": true,
+      "living_preferences.hospital.selected": true
+    },
+    "expected_ui_labels": [
+      "생활 편의: 카페, 병원"
+    ],
+    "workplace": {
+      "name": "연세대학교 신촌캠퍼스",
+      "address": "서울 서대문구 연세로 50",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "recommendation_assertions": {
+      "required_living_categories": [
+        "cafe",
+        "hospital"
+      ],
+      "require_living_matches": true
+    }
+  },
+  {
+    "id": "nl_012",
+    "input": "헬스장이랑 세탁소가 가까운 집이면 좋겠어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "living_preferences.gym.selected": true,
+      "living_preferences.laundry.selected": true
+    },
+    "expected_ui_labels": [
+      "생활 편의: 세탁소, 헬스장"
+    ],
+    "workplace": {
+      "name": "연세대학교 신촌캠퍼스",
+      "address": "서울 서대문구 연세로 50",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "recommendation_assertions": {
+      "required_living_categories": [
+        "gym",
+        "laundry"
+      ],
+      "require_living_matches": true
+    }
+  },
+  {
+    "id": "nl_013",
+    "input": "대형마트와 편의점이 가까운 곳이면 좋겠어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "living_preferences.large_store.selected": true,
+      "living_preferences.convenience_store.selected": true
+    },
+    "expected_ui_labels": [
+      "생활 편의: 대형마트, 편의점"
+    ],
+    "workplace": {
+      "name": "연세대학교 신촌캠퍼스",
+      "address": "서울 서대문구 연세로 50",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "recommendation_assertions": {
+      "required_living_categories": [
+        "large_store",
+        "convenience_store"
+      ],
+      "require_living_matches": true
+    }
+  },
+  {
+    "id": "nl_014",
+    "input": "조용하고 안전한 동네면 좋겠어요.",
+    "request_state": {
+      "transport_mode": "transit",
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": [],
+        "transit_detail": []
+      },
+      "hard_constraints": {
+        "deposit_max": 1500,
+        "rent_max": 60,
+        "max_commute_minutes": 50
+      },
+      "soft_preferences": {
+        "commute_time_priority": "none",
+        "walking_distance_priority": "none",
+        "transfer_count_priority": "none",
+        "budget_priority": "none",
+        "transit_access_priority": "none"
+      },
+      "route_preferences": {},
+      "geo_constraints": {},
+      "tradeoff_policy": {}
+    },
+    "expected_parse": {
+      "unsupported_preferences": [
+        "조용한 동네",
+        "안전한 동네"
+      ]
+    },
+    "expected_ui_labels": [
+      "현재 데이터로 직접 판단하기 어려운 조건: 조용한 동네, 안전한 동네"
+    ]
+  },
+  {
+    "id": "nl_015",
+    "input": "대중교통으로 다니기 편했으면 좋겠고, 주변에 카페랑 병원도 가까웠으면 좋겠어요.",
+    "expected_parse": {
+      "soft_preferences.transit_access_priority": "high",
+      "living_preferences.cafe.selected": true,
+      "living_preferences.hospital.selected": true
+    },
+    "expected_ui_labels": [
+      "대중교통 접근성 중요",
+      "생활 편의: 카페, 병원"
+    ],
+    "workplace": {
+      "name": "세종대학교 광개토관",
+      "address": "서울 서초구 세종대로 50",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "recommendation_assertions": {
+      "required_living_categories": [
+        "cafe",
+        "hospital"
+      ],
+      "require_living_matches": true
+    }
+  },
+  {
+    "id": "nl_016",
+    "input": "성동구는 싫어요. 회사 근처가 좋고요. 월세는 조금 높아도 괜찮아요.",
+    "expected_parse": {
+      "geo_constraints.excluded_districts": [
+        "성동구"
+      ],
+      "must_have": [
+        "직장/학교 근처"
+      ],
+      "tradeoff_policy.pay_more_for_commute": true
+    },
+    "expected_ui_labels": [
+      "제외 지역: 성동구",
+      "꼭 필요한 조건: 직장/학교 근처",
+      "통근 우선 / 비용 일부 양보"
+    ]
+  },
+  {
+    "id": "nl_017",
+    "input": "통근이 편하면 월세가 조금 높아도 괜찮고, 보증금은 1500만원 이하로 보고 싶어요.",
+    "expected_parse": {
+      "hard_constraints.deposit_max": 1500,
+      "tradeoff_policy.pay_more_for_commute": true
+    },
+      "expected_ui_labels": [
+        "예산 조건: 보증금 1500만원 이하",
+        "통근 우선 / 비용 일부 양보"
+      ]
+  },
+  {
+    "id": "nl_018",
+    "input": "월세는 낮을수록 좋고, 역까지 조금 걸어도 괜찮아요.",
+    "expected_parse": {
+      "tradeoff_policy.pay_more_for_commute": false,
+      "tradeoff_policy.accept_longer_walk_for_lower_rent": true,
+      "soft_preferences.budget_priority": "high"
+    },
+      "expected_ui_labels": [
+        "비용 우선",
+        "도보 길어도 비용 절감 허용"
+      ]
+  },
+  {
+    "id": "nl_019",
+    "input": "성동구는 싫어여. 회사 근처가 좋겠어욤. 카페도 있으면 좋겠어여.",
+    "expected_parse": {
+      "geo_constraints.excluded_districts": [
+        "성동구"
+      ],
+      "must_have": [
+        "직장/학교 근처"
+      ],
+      "living_preferences.cafe.selected": true
+    },
+    "expected_ui_labels": [
+      "제외 지역: 성동구",
+      "꼭 필요한 조건: 직장/학교 근처",
+      "생활 편의: 카페"
+    ]
+  },
+  {
+    "id": "nl_020",
+    "input": "성동구는싫어요 회사근처가좋고 대중교통으로다닐만한곳 원해요.",
+    "expected_parse": {
+      "geo_constraints.excluded_districts": [
+        "성동구"
+      ],
+      "must_have": [
+        "직장/학교 근처"
+      ],
+      "soft_preferences.transit_access_priority": "high"
+    },
+    "expected_ui_labels": [
+      "제외 지역: 성동구",
+      "꼭 필요한 조건: 직장/학교 근처",
+      "대중교통 접근성 중요"
+    ]
+  },
+  {
+    "id": "nl_021",
+    "input": "조용한 동네가 좋고, 밤길이 안전했으면 좋겠어요.",
+    "expected_parse": {
+      "unsupported_preferences": [
+        "조용한 동네",
+        "안전한 동네",
+        "밤길이 안전한 곳"
+      ]
+    },
+    "expected_ui_labels": [
+      "현재 데이터로 직접 판단하기 어려운 조건: 조용한 동네, 안전한 동네, 밤길이 안전한 곳"
+    ]
+  },
+  {
+    "id": "nl_022",
+    "input": "대형마트랑 편의점은 가까웠으면 좋겠고, 너무 번잡한 상권은 싫어요.",
+    "expected_parse": {
+      "living_preferences.large_store.selected": true,
+      "living_preferences.convenience_store.selected": true,
+      "unsupported_preferences": [
+        "번잡한 상권"
+      ]
+    },
+    "expected_ui_labels": [
+      "생활 편의: 대형마트, 편의점",
+      "현재 데이터로 직접 판단하기 어려운 조건: 번잡한 상권"
+    ],
+    "workplace": {
+      "name": "세종대학교 광개토관",
+      "address": "서울 서초구 세종대로 50",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "recommendation_assertions": {
+      "required_living_categories": [
+        "large_store",
+        "convenience_store"
+      ],
+      "require_living_matches": true
+    }
+  },
+  {
+    "id": "nl_023",
+    "input": "너무 조용한 곳은 별로고, 사람도 적당히 있고 생활편의도 어느 정도 있는 곳이 좋겠어요.",
+    "expected_parse": {
+      "living_preferences.convenience_store.selected": true,
+      "unsupported_preferences": [
+        "조용한 동네",
+        "적당한 유동인구",
+        "생활 분위기"
+      ],
+      "needs_clarification": [
+        "조용함과 생활편의 우선순위"
+      ]
+    },
+      "expected_ui_labels": [
+        "생활 편의시설이 많은 곳",
+        "현재 데이터로 직접 판단하기 어려운 조건: 조용한 동네, 적당한 유동인구, 생활 분위기",
+        "추가 질문 필요: 조용함과 생활편의 우선순위"
+      ]
+  },
+  {
+    "id": "nl_024",
+    "input": "회사 근처면 좋겠어요.",
+    "expected_parse": {
+      "must_have": [
+        "직장/학교 근처"
+      ],
+      "needs_clarification": [
+        "세부 조건 보완",
+        "직주근접 세부 기준"
+      ]
+    },
+    "expected_ui_labels": [
+      "꼭 필요한 조건: 직장/학교 근처",
+      "추가 질문 필요: 세부 조건 보완, 직주근접 세부 기준"
+    ]
+  },
+  {
+    "id": "ui_A",
+    "input": "성동구는싫어여 회사근처가좋겟어요",
+    "required_ui_labels": [
+      "제외 지역: 성동구",
+      "꼭 필요한 조건: 직장/학교 근처"
+    ],
+    "forbidden_ui_labels": [
+      "통근시간 40분 이내",
+      "통근시간 50분 이내",
+      "예산 조건 중요",
+      "대중교통 접근성 중요",
+      "도보 이동은 짧을수록 좋음"
+    ]
+  },
+  {
+    "id": "ui_B",
+    "input": "카페랑 병원은 가까웠으면 좋겠고, 조용한 동네면 더 좋아요.",
+    "required_ui_labels": [
+      "생활 편의: 카페, 병원",
+      "현재 데이터로 직접 판단하기 어려운 조건: 조용한 동네"
+    ],
+    "forbidden_ui_labels": [
+      "통근시간 40분 이내",
+      "통근시간 50분 이내",
+      "예산 조건 중요",
+      "대중교통 접근성 중요"
+    ]
+  },
+  {
+    "id": "ui_C",
+    "input": "도보 10분 거리에 카페랑 병원 있었으면 좋겠어요.",
+    "expected_parse": {
+      "living_preferences.cafe.selected": true,
+      "living_preferences.cafe.max_walk_minutes": 10,
+      "living_preferences.hospital.selected": true,
+      "living_preferences.hospital.max_walk_minutes": 10
+    },
+    "required_ui_labels": [
+      "생활 편의: 카페 도보 약 10분 이내, 병원 도보 약 10분 이내"
+    ],
+    "forbidden_ui_labels": [
+      "통근시간 10분 이내",
+      "통근시간 40분 이내",
+      "통근시간 50분 이내",
+      "transport_mode"
+    ]
+  },
+  {
+    "id": "ui_D",
+    "input": "보증금은 1000만원 이하, 월세는 40만원 이하로 보고 싶어요.",
+    "required_ui_labels": [
+      "예산 조건: 보증금 1000만원 이하, 월세 40만원 이하"
+    ],
+    "forbidden_ui_labels": [
+      "통근시간 40분 이내",
+      "통근시간 50분 이내",
+      "대중교통 접근성 중요",
+      "예산 조건 중요"
+    ]
+  },
+  {
+    "id": "ui_F",
+    "input": "환승은 최대한 적게 하고 싶고, 걸어서 5분거리에 편의점 있었으면 좋겠어",
+    "expected_parse": {
+      "soft_preferences.transfer_count_priority": "high",
+      "living_preferences.convenience_store.selected": true,
+      "living_preferences.convenience_store.max_walk_minutes": 5
+    },
+    "required_ui_labels": [
+      "환승은 적을수록 좋음",
+      "생활 편의: 편의점 도보 약 5분 이내"
+    ],
+    "forbidden_ui_labels": [
+      "통근시간 5분 이내",
+      "통근시간 40분 이내",
+      "transport_mode",
+      "이동 기준을 먼저 정할게요"
+    ]
+  }
+]

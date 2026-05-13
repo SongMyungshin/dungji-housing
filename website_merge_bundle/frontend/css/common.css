@@ -1,0 +1,144 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  color: #1f2552;
+  background: #f5f7ff;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.primary-button {
+  border: none;
+  border-radius: 18px;
+  padding: 0 22px;
+  min-height: 52px;
+  background: linear-gradient(135deg, #6d44ff, #5b6cff);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(91, 108, 255, 0.24);
+}
+
+.secondary-button {
+  border: 1px solid rgba(91, 108, 255, 0.2);
+  border-radius: 14px;
+  min-height: 40px;
+  background: #fff;
+  color: #5160c9;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.card-surface {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(91, 108, 255, 0.12);
+  border-radius: 28px;
+  box-shadow: 0 20px 48px rgba(42, 56, 120, 0.08);
+}
+
+.text-link {
+  color: #5160c9;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.system-switcher-fab {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+  user-select: none;
+}
+
+.system-switcher-fab.is-dragging {
+  transition: none !important;
+}
+
+.system-switcher-toggle {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(91, 108, 255, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #33406b;
+  box-shadow: 0 14px 28px rgba(42, 56, 120, 0.10);
+  backdrop-filter: blur(10px);
+  cursor: grab;
+  touch-action: none;
+}
+
+.system-switcher-toggle:active {
+  cursor: grabbing;
+}
+
+.system-switcher-toggle svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.system-switcher-menu {
+  display: none;
+  min-width: 132px;
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(91, 108, 255, 0.14);
+  box-shadow: 0 14px 28px rgba(42, 56, 120, 0.10);
+  backdrop-filter: blur(10px);
+}
+
+.system-switcher-fab.is-open .system-switcher-menu {
+  display: grid;
+  gap: 8px;
+}
+
+.system-switcher-menu a {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: #f5f7ff;
+  color: #33406b;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.system-switcher-menu a.is-active {
+  background: linear-gradient(135deg, #6d44ff, #5b6cff);
+  color: #fff;
+}
+
+@media (max-width: 720px) {
+  .system-switcher-fab {
+    top: 10px;
+    right: 10px;
+  }
+
+  .system-switcher-menu {
+    min-width: 118px;
+  }
+}

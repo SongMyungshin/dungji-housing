@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commute AI</title>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --panel-soft: #f7f9fc;
+      --text: #18212f;
+      --muted: #637086;
+      --line: #d9e1ec;
+      --brand: #2b6ef3;
+      --brand-soft: #eaf1ff;
+      --brand-deep: #184db8;
+      --danger: #d64545;
+      --shadow: 0 18px 40px rgba(20, 34, 66, 0.08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Noto Sans KR", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eff4ff 0%, #f6f8fc 100%);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.18fr) minmax(360px, 430px);
+      min-height: 100vh;
+    }
+    .map-panel { position: relative; padding: 22px; }
+    .map-shell {
+      height: calc(100vh - 44px);
+      border-radius: 28px;
+      overflow: hidden;
+      background: #dfe8f8;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    #map { width: 100%; height: 100%; }
+    .map-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--muted);
+      padding: 24px;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(43, 110, 243, 0.16), transparent 26%),
+        radial-gradient(circle at 78% 24%, rgba(14, 165, 233, 0.18), transparent 24%),
+        linear-gradient(160deg, #eef4ff 0%, #dbe8ff 100%);
+    }
+    .sidebar { padding: 24px 24px 22px 0; }
+    .sidebar-inner {
+      height: calc(100vh - 46px);
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(216, 225, 238, 0.9);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .search-box, .section { padding: 20px 22px; }
+    .search-box { border-bottom: 1px solid var(--line); }
+    .search-box label, .section-title {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+    .search-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    input[type="text"], input[type="number"], textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    textarea { min-height: 92px; resize: vertical; line-height: 1.5; }
+    input:focus, textarea:focus {
+      border-color: rgba(43, 110, 243, 0.6);
+      box-shadow: 0 0 0 4px rgba(43, 110, 243, 0.12);
+    }
+    button { font: inherit; border: 0; cursor: pointer; }
+    .primary-btn {
+      background: var(--brand);
+      color: #fff;
+      border-radius: 14px;
+      padding: 0 16px;
+      font-weight: 700;
+      min-width: 68px;
+    }
+    .ghost-btn {
+      background: transparent;
+      color: var(--brand);
+      font-weight: 700;
+      padding: 0;
+    }
+    .search-results, .selected-workplace { margin-top: 14px; }
+    .search-results {
+      display: grid;
+      gap: 8px;
+      max-height: 190px;
+      overflow-y: auto;
+    }
+    .result-item, .selected-workplace {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 16px;
+      padding: 13px 14px;
+    }
+    .result-item {
+      width: 100%;
+      text-align: left;
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .result-item:hover {
+      border-color: rgba(43, 110, 243, 0.35);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(18, 36, 70, 0.08);
+    }
+    .place-name { font-weight: 700; }
+    .place-address { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .selected-workplace {
+      background: var(--brand-soft);
+      border-color: rgba(43, 110, 243, 0.18);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .mini-clear {
+      color: var(--danger);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 2px 0;
+      white-space: nowrap;
+    }
+    .header {
+      padding: 20px 22px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow {
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .header h1 { margin: 0; font-size: 25px; line-height: 1.2; }
+    .header p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .hidden { display: none !important; }
+    .control-card {
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 18px;
+      padding: 16px;
+      margin-top: 14px;
+    }
+    .app-content {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    .deal-gate {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+    }
+    .deal-gate-inner {
+      width: 100%;
+      max-width: 260px;
+      display: grid;
+      gap: 14px;
+    }
+    .deal-gate-btn {
+      width: 100%;
+      min-height: 86px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-size: 22px;
+      font-weight: 800;
+      box-shadow: 0 14px 28px rgba(20, 34, 66, 0.06);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    .deal-gate-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(43, 110, 243, 0.32);
+      box-shadow: 0 18px 32px rgba(20, 34, 66, 0.1);
+    }
+    .chip-row, .primary-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip-btn, .primary-choice {
+      min-width: 108px;
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 700;
+      transition: all 0.18s ease;
+    }
+    .chip-btn.active, .primary-choice.active {
+      background: var(--brand);
+      color: #fff;
+      border-color: var(--brand);
+      box-shadow: 0 10px 18px rgba(43, 110, 243, 0.18);
+    }
+    .primary-choice {
+      min-width: 88px;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .single-column {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .field-card {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 16px;
+      padding: 11px;
+      min-width: 0;
+    }
+    .field-card .field-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+    .number-stepper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+    .step-btn {
+      flex: 0 0 24px;
+      width: 24px;
+      height: 24px;
+      border-radius: 9px;
+      background: var(--panel-soft);
+      color: var(--brand-deep);
+      border: 1px solid var(--line);
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 700;
+      padding: 0;
+    }
+    .number-input {
+      appearance: textfield;
+      -moz-appearance: textfield;
+      flex: 1 1 auto;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 6px 6px;
+      background: #fff;
+      color: var(--text);
+      min-width: 0;
+      width: 100%;
+      overflow: visible;
+    }
+    .number-input::-webkit-outer-spin-button,
+    .number-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .unit {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 4px;
+    }
+    .budget-card-grid .number-input {
+      letter-spacing: 0.01em;
+      font-variant-numeric: tabular-nums;
+    }
+    .summary-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .summary-chip {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .summary-chip strong {
+      color: var(--text);
+      margin-right: 4px;
+    }
+    .results { padding: 18px 22px 8px; }
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .results-title { font-size: 18px; font-weight: 800; margin: 0; }
+    .result-count { color: var(--muted); font-size: 13px; }
+    .empty-state, .suggestions {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      padding: 16px;
+    }
+    .suggestions {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .suggestion-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--panel-soft);
+    }
+    .result-list { display: grid; gap: 12px; }
+    .result-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .result-card h3 { margin: 0; font-size: 17px; }
+    .meta-line, .reason-line {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .price-line {
+      margin-top: 10px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .result-actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+    }
+    .secondary-btn {
+      border-radius: 12px;
+      padding: 9px 12px;
+      background: var(--brand-soft);
+      color: var(--brand-deep);
+      font-weight: 700;
+    }
+    .composer {
+      border-top: 1px solid var(--line);
+      padding: 18px 22px 22px;
+    }
+    .composer-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { padding: 0 18px 18px; }
+      .map-panel { padding: 18px 18px 12px; }
+      .map-shell, .sidebar-inner { height: auto; min-height: 420px; }
+    }
+    @media (max-width: 640px) {
+      .grid-2, .search-row { grid-template-columns: 1fr; }
+      .primary-btn { min-height: 46px; }
+      .sidebar { padding: 0 12px 12px; }
+      .map-panel { padding: 12px 12px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <section class="map-panel">
+      <div class="map-shell">
+        <div id="map"></div>
+        <div id="map-empty" class="map-empty">직장이나 학교를 선택하면 위치와 추천 매물을 지도에 표시합니다.</div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+        <div id="deal-gate" class="deal-gate">
+          <div class="deal-gate-inner">
+            <button type="button" class="deal-gate-btn" data-deal="monthly">월세</button>
+            <button type="button" class="deal-gate-btn" data-deal="jeonse">전세</button>
+          </div>
+        </div>
+
+        <div id="app-content" class="app-content hidden">
+          <div class="header">
+            <div class="eyebrow">Commute AI</div>
+            <h1>통근 기반 주거 추천 AI</h1>
+            <p>위치를 선택한 뒤 예산과 이동 조건을 정하고, 아래 입력창에 추가 조건을 적으면 추천 결과를 보여줍니다.</p>
+          </div>
+          <div class="search-box">
+            <label for="workplace_search">직장/학교 검색</label>
+            <div class="search-row">
+              <input id="workplace_search" type="text" placeholder="예: 가천대학교, 강남역, 판교테크노밸리">
+              <button type="button" id="search-workplace-btn" class="primary-btn">찾기</button>
+            </div>
+
+            <div id="workplace-slot">
+              <div id="search-results" class="search-results hidden"></div>
+              <div id="selected-workplace" class="selected-workplace hidden"></div>
+            </div>
+
+            <div id="transport-card" class="control-card hidden">
+              <div class="section-title">이동수단</div>
+              <div class="chip-row">
+                <button type="button" class="chip-btn transport-chip" data-mode="transit">대중교통</button>
+                <button type="button" class="chip-btn transport-chip" data-mode="car">자동차</button>
+              </div>
+              <div id="commute-wrap" class="hidden" style="margin-top: 14px;">
+                <div class="section-title" style="margin-bottom: 0;">최대 통근 시간</div>
+                <div id="commute-grid" class="grid-2 hidden" style="margin-top: 10px;"></div>
+              </div>
+              <div id="primary-block" class="field-card hidden" style="margin-top: 10px; padding: 11px 12px;">
+                <div class="field-label">주 교통수단</div>
+                <div class="primary-row">
+                  <button type="button" class="primary-choice" data-primary="transit">대중교통</button>
+                  <button type="button" class="primary-choice" data-primary="car">자동차</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="budget-card" class="control-card hidden">
+              <div class="section-title">예산</div>
+              <div class="grid-2 budget-card-grid">
+                <div class="field-card">
+                  <div class="field-label">보증금 최대</div>
+                  <div class="number-stepper">
+                    <button type="button" class="step-btn" data-step-target="deposit" data-step="-100">-</button>
+                    <input id="deposit-input" class="number-input" type="number" min="0" step="100" inputmode="numeric" placeholder="1500">
+                    <button type="button" class="step-btn" data-step-target="deposit" data-step="100">+</button>
+                  </div>
+                  <div class="unit">만원</div>
+                </div>
+                <div class="field-card">
+                  <div class="field-label">월세 상한</div>
+                  <div class="number-stepper">
+                    <button type="button" class="step-btn" data-step-target="rent" data-step="-5">-</button>
+                    <input id="rent-input" class="number-input" type="number" min="0" step="5" inputmode="numeric" placeholder="60">
+                    <button type="button" class="step-btn" data-step-target="rent" data-step="5">+</button>
+                  </div>
+                  <div class="unit">만원</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="selection-summary" class="summary-row hidden"></div>
+          </div>
+
+          <div class="results">
+            <div class="results-header">
+              <h2 class="results-title">추천 결과</h2>
+              <div id="result-count" class="result-count">아직 검색 전입니다.</div>
+            </div>
+            <div id="results-body" class="empty-state">직장/학교를 선택하고 조건을 설정한 뒤 추천 보기를 눌러주세요.</div>
+          </div>
+
+          <div class="composer">
+            <label class="section-title" for="query-input">추가 조건</label>
+            <textarea id="query-input" placeholder="예: 지하철은 최대한 피하고 싶어요. 환승은 적었으면 좋겠고, 오피스텔이면 좋겠어요."></textarea>
+            <div class="composer-actions">
+              <button type="button" id="recommend-btn" class="primary-btn">추천 보기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const DEFAULTS = { deposit: 1500, rent: 60, transitCommute: 50, carCommute: 30 };
+    const appState = {
+      dealType: null,
+      workplace: null,
+      selectedModes: [],
+      primaryMode: null,
+      commuteLimits: { transit: DEFAULTS.transitCommute, car: DEFAULTS.carCommute },
+      depositMax: DEFAULTS.deposit,
+      rentMax: DEFAULTS.rent,
+      queryText: "",
+    };
+
+    const elements = {
+      workplaceSearch: document.getElementById("workplace_search"),
+      searchButton: document.getElementById("search-workplace-btn"),
+      searchResults: document.getElementById("search-results"),
+      selectedWorkplace: document.getElementById("selected-workplace"),
+      dealGate: document.getElementById("deal-gate"),
+      appContent: document.getElementById("app-content"),
+      transportCard: document.getElementById("transport-card"),
+      commuteWrap: document.getElementById("commute-wrap"),
+      commuteGrid: document.getElementById("commute-grid"),
+      primaryBlock: document.getElementById("primary-block"),
+      budgetCard: document.getElementById("budget-card"),
+      summary: document.getElementById("selection-summary"),
+      depositInput: document.getElementById("deposit-input"),
+      rentInput: document.getElementById("rent-input"),
+      queryInput: document.getElementById("query-input"),
+      recommendButton: document.getElementById("recommend-btn"),
+      resultsBody: document.getElementById("results-body"),
+      resultCount: document.getElementById("result-count"),
+      mapEmpty: document.getElementById("map-empty"),
+    };
+
+    let map;
+    let workplaceMarker = null;
+    let listingMarkers = [];
+
+    function noOp() {}
+
+    function normalizeValue(value, step, fallback) {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(0, Math.round(parsed / step) * step);
+    }
+
+    function selectedLabel(mode) {
+      return mode === "car" ? "자동차" : "대중교통";
+    }
+
+    function formatPrice(item) {
+      if (item.deposit_manwon == null && item.monthly_rent_manwon == null) return "가격 정보 없음";
+      if ((item.monthly_rent_manwon || 0) <= 0) return `전세 ${item.deposit_manwon ?? "-"}만원`;
+      return `보증금 ${item.deposit_manwon ?? "-"}만원 / 월세 ${item.monthly_rent_manwon ?? "-"}만원`;
+    }
+
+    function routeText(item) {
+      if (item.route_type === "car") return `자동차 ${item.duration_min}분`;
+      return `대중교통 ${item.duration_min}분 · 환승 ${item.bus_transit_count + item.subway_transit_count}회 · 도보 ${item.total_walk_m}m`;
+    }
+
+    function buildSuggestionText(item) {
+      if (item.field === "max_commute_minutes") {
+        return `통근시간을 ${appState.primaryMode === "car" ? appState.commuteLimits.car : appState.commuteLimits.transit}분에서 ${item.value}분으로 넓히면 ${item.count}개가 있습니다.`;
+      }
+      if (item.field === "deposit_max") {
+        return `보증금을 ${appState.depositMax}만원에서 ${item.value}만원으로 넓히면 ${item.count}개가 있습니다.`;
+      }
+      if (item.field === "rent_max") {
+        return `월세 상한을 ${appState.rentMax}만원에서 ${item.value}만원으로 넓히면 ${item.count}개가 있습니다.`;
+      }
+      return `주택 유형 제한을 풀면 ${item.count}개가 있습니다.`;
+    }
+
+    function updateSummary() {
+      if (!appState.workplace) {
+        elements.summary.classList.add("hidden");
+        elements.summary.innerHTML = "";
+        return;
+      }
+
+      const chips = [
+        `<span class="summary-chip"><strong>위치</strong>${appState.workplace.name}</span>`,
+        `<span class="summary-chip"><strong>보증금</strong>${appState.depositMax}만원</span>`,
+        `<span class="summary-chip"><strong>월세</strong>${appState.rentMax}만원</span>`,
+      ];
+
+      if (appState.selectedModes.length) {
+        chips.push(`<span class="summary-chip"><strong>이동수단</strong>${appState.selectedModes.map(selectedLabel).join(", ")}</span>`);
+      }
+      if (appState.selectedModes.includes("transit")) {
+        chips.push(`<span class="summary-chip"><strong>대중교통</strong>${appState.commuteLimits.transit}분</span>`);
+      }
+      if (appState.selectedModes.includes("car")) {
+        chips.push(`<span class="summary-chip"><strong>자동차</strong>${appState.commuteLimits.car}분</span>`);
+      }
+      if (appState.selectedModes.length === 2 && appState.primaryMode) {
+        chips.push(`<span class="summary-chip"><strong>주 기준</strong>${selectedLabel(appState.primaryMode)}</span>`);
+      }
+
+      elements.summary.innerHTML = chips.join("");
+      elements.summary.classList.remove("hidden");
+    }
+
+    function renderDealGate() {
+      const hasDeal = Boolean(appState.dealType);
+      elements.dealGate.classList.toggle("hidden", hasDeal);
+      elements.appContent.classList.toggle("hidden", !hasDeal);
+    }
+
+    function renderSelectedWorkplace() {
+      if (!appState.workplace) {
+        elements.selectedWorkplace.classList.add("hidden");
+        elements.selectedWorkplace.innerHTML = "";
+        return;
+      }
+      elements.selectedWorkplace.innerHTML = `
+        <div>
+          <div class="place-name">${appState.workplace.name}</div>
+          <div class="place-address">${appState.workplace.address}</div>
+        </div>
+        <button type="button" class="mini-clear" id="clear-workplace-btn">다시 선택</button>
+      `;
+      elements.selectedWorkplace.classList.remove("hidden");
+      document.getElementById("clear-workplace-btn").addEventListener("click", clearWorkplaceSelection);
+    }
+
+    function clearSearchResults() {
+      elements.searchResults.innerHTML = "";
+      elements.searchResults.classList.add("hidden");
+    }
+
+    function clearWorkplaceSelection() {
+      appState.workplace = null;
+      appState.dealType = null;
+      appState.selectedModes = [];
+      appState.primaryMode = null;
+      appState.commuteLimits = { transit: DEFAULTS.transitCommute, car: DEFAULTS.carCommute };
+      appState.depositMax = DEFAULTS.deposit;
+      appState.rentMax = DEFAULTS.rent;
+      elements.workplaceSearch.value = "";
+      renderSelectedWorkplace();
+      clearSearchResults();
+      renderTransport();
+      renderBudget();
+      renderDealGate();
+      updateSummary();
+      resetResults();
+      clearMapListings();
+      if (workplaceMarker) {
+        workplaceMarker.setMap(null);
+        workplaceMarker = null;
+      }
+      if (map) map.setLevel(8);
+      elements.mapEmpty.classList.remove("hidden");
+    }
+
+    function renderTransport() {
+      const visible = Boolean(appState.workplace);
+      elements.transportCard.classList.toggle("hidden", !visible);
+      elements.budgetCard.classList.toggle("hidden", !visible);
+      if (!visible) return;
+
+      document.querySelectorAll(".transport-chip").forEach((button) => {
+        button.classList.toggle("active", appState.selectedModes.includes(button.dataset.mode));
+      });
+
+      const fields = [];
+      if (appState.selectedModes.includes("transit")) {
+        fields.push(`
+          <div class="field-card">
+            <div class="field-label">대중교통</div>
+            <div class="number-stepper">
+              <button type="button" class="step-btn" data-step-target="transit-commute" data-step="-5">-</button>
+              <input class="number-input commute-input" data-commute-mode="transit" type="number" min="0" step="5" value="${appState.commuteLimits.transit}" placeholder="${DEFAULTS.transitCommute}">
+              <button type="button" class="step-btn" data-step-target="transit-commute" data-step="5">+</button>
+            </div>
+            <div class="unit">분</div>
+          </div>
+        `);
+      }
+      if (appState.selectedModes.includes("car")) {
+        fields.push(`
+          <div class="field-card">
+            <div class="field-label">자동차</div>
+            <div class="number-stepper">
+              <button type="button" class="step-btn" data-step-target="car-commute" data-step="-5">-</button>
+              <input class="number-input commute-input" data-commute-mode="car" type="number" min="0" step="5" value="${appState.commuteLimits.car}" placeholder="${DEFAULTS.carCommute}">
+              <button type="button" class="step-btn" data-step-target="car-commute" data-step="5">+</button>
+            </div>
+            <div class="unit">분</div>
+          </div>
+        `);
+      }
+
+      elements.commuteGrid.innerHTML = fields.join("");
+      elements.commuteWrap.classList.toggle("hidden", fields.length === 0);
+      elements.commuteGrid.classList.toggle("single-column", fields.length === 1);
+      elements.commuteGrid.classList.toggle("hidden", fields.length === 0);
+      elements.primaryBlock.classList.toggle("hidden", appState.selectedModes.length !== 2);
+
+      document.querySelectorAll(".primary-choice").forEach((button) => {
+        button.classList.toggle("active", appState.primaryMode === button.dataset.primary);
+      });
+      bindDynamicInputs();
+    }
+
+    function renderBudget() {
+      if (!appState.workplace) return;
+      elements.depositInput.value = appState.depositMax;
+      elements.rentInput.value = appState.rentMax;
+    }
+
+    function resetResults() {
+      elements.resultsBody.className = "empty-state";
+      elements.resultsBody.textContent = "직장/학교를 선택하고 조건을 설정한 뒤 추천 보기를 눌러주세요.";
+      elements.resultCount.textContent = "아직 검색 전입니다.";
+    }
+
+    function clearMapListings() {
+      listingMarkers.forEach((marker) => marker.setMap(null));
+      listingMarkers = [];
+    }
+
+    function ensurePrimaryMode() {
+      if (appState.selectedModes.length === 1) {
+        appState.primaryMode = appState.selectedModes[0];
+      } else if (appState.selectedModes.length === 2) {
+        if (!appState.selectedModes.includes(appState.primaryMode)) appState.primaryMode = "transit";
+      } else {
+        appState.primaryMode = null;
+      }
+    }
+
+    function toggleMode(mode) {
+      if (!appState.workplace) return;
+      if (appState.selectedModes.includes(mode)) {
+        appState.selectedModes = appState.selectedModes.filter((item) => item !== mode);
+      } else {
+        appState.selectedModes = [...appState.selectedModes, mode];
+      }
+      ensurePrimaryMode();
+      renderTransport();
+      updateSummary();
+    }
+
+    function selectPrimaryMode(mode) {
+      appState.primaryMode = mode;
+      renderTransport();
+      updateSummary();
+    }
+
+    function selectDealType(type) {
+      appState.dealType = type;
+      renderDealGate();
+    }
+
+    function bindDynamicInputs() {
+      document.querySelectorAll(".commute-input").forEach((input) => {
+        input.addEventListener("input", () => {
+          const mode = input.dataset.commuteMode;
+          const fallback = mode === "car" ? DEFAULTS.carCommute : DEFAULTS.transitCommute;
+          appState.commuteLimits[mode] = normalizeValue(input.value, 5, fallback);
+          updateSummary();
+        });
+        input.addEventListener("blur", () => {
+          const mode = input.dataset.commuteMode;
+          const fallback = mode === "car" ? DEFAULTS.carCommute : DEFAULTS.transitCommute;
+          appState.commuteLimits[mode] = normalizeValue(input.value, 5, fallback);
+          input.value = appState.commuteLimits[mode];
+          updateSummary();
+        });
+      });
+      document.querySelectorAll('[data-step-target="transit-commute"], [data-step-target="car-commute"]').forEach((button) => {
+        button.onclick = () => {
+          const target = button.dataset.stepTarget;
+          const step = Number(button.dataset.step);
+          if (target === "transit-commute") {
+            appState.commuteLimits.transit = Math.max(0, normalizeValue(appState.commuteLimits.transit + step, 5, DEFAULTS.transitCommute));
+          } else if (target === "car-commute") {
+            appState.commuteLimits.car = Math.max(0, normalizeValue(appState.commuteLimits.car + step, 5, DEFAULTS.carCommute));
+          }
+          renderTransport();
+          updateSummary();
+        };
+      });
+    }
+
+    async function searchWorkplaces() {
+      const keyword = elements.workplaceSearch.value.trim();
+      if (!keyword) return;
+      const response = await fetch(`/api/workplace-search?q=${encodeURIComponent(keyword)}`);
+      const data = await response.json();
+      const results = data.results || [];
+      clearSearchResults();
+      if (!results.length) {
+        elements.searchResults.classList.remove("hidden");
+        elements.searchResults.innerHTML = `<div class="empty-state">검색 결과가 없습니다.</div>`;
+        return;
+      }
+      elements.searchResults.classList.remove("hidden");
+      elements.searchResults.innerHTML = results.map((item, index) => `
+        <button type="button" class="result-item" data-result-index="${index}">
+          <div class="place-name">${item.name}</div>
+          <div class="place-address">${item.address}</div>
+        </button>
+      `).join("");
+      elements.searchResults.querySelectorAll(".result-item").forEach((button) => {
+        button.addEventListener("click", () => selectWorkplace(results[Number(button.dataset.resultIndex)]));
+      });
+    }
+
+    function selectWorkplace(item) {
+      appState.workplace = item;
+      elements.workplaceSearch.value = item.name;
+      clearSearchResults();
+      renderSelectedWorkplace();
+      renderTransport();
+      renderBudget();
+      updateSummary();
+      updateMapForWorkplace();
+    }
+
+    function updateMapForWorkplace() {
+      if (!map || !appState.workplace) return;
+      clearMapListings();
+      elements.mapEmpty.classList.add("hidden");
+      if (workplaceMarker) workplaceMarker.setMap(null);
+      const position = new kakao.maps.LatLng(appState.workplace.lat, appState.workplace.lng);
+      workplaceMarker = new kakao.maps.Marker({ map, position });
+      map.setCenter(position);
+      map.setLevel(5);
+    }
+
+    function buildQueryText() {
+      const parts = [];
+      if (appState.selectedModes.includes("transit")) parts.push(`대중교통 ${appState.commuteLimits.transit}분 이내`);
+      if (appState.selectedModes.includes("car")) parts.push(`자동차 ${appState.commuteLimits.car}분 이내`);
+      if (appState.primaryMode) parts.push(`주 교통수단은 ${selectedLabel(appState.primaryMode)}`);
+      const extra = elements.queryInput.value.trim();
+      if (extra) parts.push(extra);
+      return parts.join(". ");
+    }
+
+    function buildRecommendationUrl() {
+      const params = new URLSearchParams();
+      params.set("workplace_address", appState.workplace.address);
+      params.set("workplace_lat", appState.workplace.lat);
+      params.set("workplace_lng", appState.workplace.lng);
+      params.set("query_text", buildQueryText());
+      params.set("transport_mode", appState.primaryMode);
+      params.set("deposit_max", String(appState.depositMax));
+      params.set("rent_max", String(appState.rentMax));
+      params.set("max_commute_minutes", String(appState.commuteLimits[appState.primaryMode]));
+      params.set("transport_json", JSON.stringify({
+        primary_mode: appState.primaryMode,
+        secondary_modes: appState.selectedModes.filter((item) => item !== appState.primaryMode),
+        transit_detail: [],
+        commute_limits: appState.commuteLimits,
+      }));
+      return `/api/recommendations?${params.toString()}`;
+    }
+
+    function renderResults(payload) {
+      const recommendations = payload.recommendations || [];
+      const suggestions = payload.meta?.relaxation_suggestions || [];
+      clearMapListings();
+
+      if (!recommendations.length) {
+        const blocks = [`<div class="empty-state">조건에 맞는 매물이 없습니다.</div>`];
+        if (suggestions.length) {
+          blocks.push(`<div class="suggestions">${suggestions.map((item) => `
+            <div class="suggestion-item">
+              <div>${buildSuggestionText(item)}</div>
+              <button type="button" class="ghost-btn" data-relax-field="${item.field}" data-relax-value="${item.value}">이 조건으로 보기</button>
+            </div>
+          `).join("")}</div>`);
+        }
+        elements.resultsBody.className = "";
+        elements.resultsBody.innerHTML = blocks.join("");
+        elements.resultCount.textContent = "추천 0개";
+        bindRelaxationButtons();
+        return;
+      }
+
+      elements.resultsBody.className = "result-list";
+      elements.resultsBody.innerHTML = recommendations.map((item, index) => `
+        <div class="result-card">
+          <h3>${index + 1}. ${item.title}</h3>
+          <div class="meta-line">${item.address}</div>
+          <div class="price-line">${formatPrice(item)} · ${item.house_type || "주택"}</div>
+          <div class="reason-line">${routeText(item)}</div>
+          <div class="reason-line">${item.reason || ""}</div>
+          <div class="result-actions">
+            <button type="button" class="secondary-btn" data-focus-index="${index}">지도에서 보기</button>
+          </div>
+        </div>
+      `).join("");
+      elements.resultCount.textContent = `추천 ${recommendations.length}개`;
+
+      recommendations.forEach((item) => {
+        if (!map) return;
+        const marker = new kakao.maps.Marker({ map, position: new kakao.maps.LatLng(item.lat, item.lng) });
+        listingMarkers.push(marker);
+      });
+
+      elements.resultsBody.querySelectorAll("[data-focus-index]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const item = recommendations[Number(button.dataset.focusIndex)];
+          if (!map) return;
+          map.setCenter(new kakao.maps.LatLng(item.lat, item.lng));
+          map.setLevel(4);
+        });
+      });
+    }
+
+    function bindRelaxationButtons() {
+      elements.resultsBody.querySelectorAll("[data-relax-field]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const field = button.dataset.relaxField;
+          const value = Number(button.dataset.relaxValue);
+          if (field === "max_commute_minutes" && appState.primaryMode) {
+            appState.commuteLimits[appState.primaryMode] = value;
+            renderTransport();
+          }
+          if (field === "deposit_max") {
+            appState.depositMax = value;
+            renderBudget();
+          }
+          if (field === "rent_max") {
+            appState.rentMax = value;
+            renderBudget();
+          }
+          updateSummary();
+          requestRecommendations();
+        });
+      });
+    }
+
+    async function requestRecommendations() {
+      if (!appState.workplace) {
+        alert("직장이나 학교를 먼저 선택해 주세요.");
+        return;
+      }
+      if (!appState.primaryMode) {
+        alert("이동수단을 선택해 주세요.");
+        return;
+      }
+      elements.resultCount.textContent = "추천을 계산하고 있습니다.";
+      elements.resultsBody.className = "empty-state";
+      elements.resultsBody.textContent = "조건에 맞는 매물을 찾는 중입니다.";
+      const response = await fetch(buildRecommendationUrl());
+      const payload = await response.json();
+      renderResults(payload);
+    }
+
+    function initInputs() {
+      elements.depositInput.value = DEFAULTS.deposit;
+      elements.rentInput.value = DEFAULTS.rent;
+      elements.depositInput.addEventListener("input", () => {
+        appState.depositMax = normalizeValue(elements.depositInput.value, 100, DEFAULTS.deposit);
+        updateSummary();
+      });
+      elements.depositInput.addEventListener("blur", () => {
+        appState.depositMax = normalizeValue(elements.depositInput.value, 100, DEFAULTS.deposit);
+        elements.depositInput.value = appState.depositMax;
+        updateSummary();
+      });
+      elements.rentInput.addEventListener("input", () => {
+        appState.rentMax = normalizeValue(elements.rentInput.value, 5, DEFAULTS.rent);
+        updateSummary();
+      });
+      elements.rentInput.addEventListener("blur", () => {
+        appState.rentMax = normalizeValue(elements.rentInput.value, 5, DEFAULTS.rent);
+        elements.rentInput.value = appState.rentMax;
+        updateSummary();
+      });
+
+      document.querySelectorAll(".step-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = button.dataset.stepTarget;
+          const step = Number(button.dataset.step);
+          if (target === "deposit") {
+            appState.depositMax = Math.max(0, normalizeValue(appState.depositMax + step, 100, DEFAULTS.deposit));
+            elements.depositInput.value = appState.depositMax;
+          } else if (target === "rent") {
+            appState.rentMax = Math.max(0, normalizeValue(appState.rentMax + step, 5, DEFAULTS.rent));
+            elements.rentInput.value = appState.rentMax;
+          }
+          updateSummary();
+        });
+      });
+    }
+
+    function initEvents() {
+      elements.searchButton.addEventListener("click", searchWorkplaces);
+      elements.workplaceSearch.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          searchWorkplaces();
+        }
+      });
+      document.querySelectorAll(".transport-chip").forEach((button) => {
+        button.addEventListener("click", () => toggleMode(button.dataset.mode));
+      });
+      document.querySelectorAll(".deal-gate-btn").forEach((button) => {
+        button.addEventListener("click", () => selectDealType(button.dataset.deal));
+      });
+      document.querySelectorAll(".primary-choice").forEach((button) => {
+        button.addEventListener("click", () => selectPrimaryMode(button.dataset.primary));
+      });
+      elements.recommendButton.addEventListener("click", requestRecommendations);
+      elements.queryInput.addEventListener("input", () => {
+        appState.queryText = elements.queryInput.value;
+      });
+    }
+
+    function initMap() {
+      if (!(window.kakao && kakao.maps)) return;
+      map = new kakao.maps.Map(document.getElementById("map"), {
+        center: new kakao.maps.LatLng(37.5665, 126.9780),
+        level: 8,
+      });
+    }
+
+    function startApp() {
+      initInputs();
+      initEvents();
+      initMap();
+      renderDealGate();
+      resetResults();
+      updateSummary();
+    }
+  </script>
+  {% if kakao_js_key %}
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_js_key }}&autoload=false" onload="kakao.maps.load(noOp); kakao.maps.load(startApp);"></script>
+  {% else %}
+  <script>startApp();</script>
+  {% endif %}
+</body>
+</html>

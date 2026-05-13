@@ -1,0 +1,4238 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="직장과 학교 기준으로 통근 가능한 집을 추천하고 이유까지 설명하는 Commute AI 인터페이스">
+  <title>Commute AI</title>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --panel-soft: #f7f9fc;
+      --text: #18212f;
+      --muted: #637086;
+      --line: #d9e1ec;
+      --brand: #2b6ef3;
+      --brand-soft: #eaf1ff;
+      --brand-deep: #184db8;
+      --danger: #d64545;
+      --shadow: 0 18px 40px rgba(20, 34, 66, 0.08);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Noto Sans KR", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eff4ff 0%, #f6f8fc 100%);
+      overflow: hidden;
+    }
+
+    .layout {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      padding: 12px;
+    }
+
+    .map-panel {
+      position: absolute;
+      inset: 12px;
+      padding: 0;
+    }
+
+    .map-shell {
+      height: 100%;
+      border-radius: 28px;
+      overflow: hidden;
+      background: #dfe8f8;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .map-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--muted);
+      padding: 24px;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(43, 110, 243, 0.16), transparent 26%),
+        radial-gradient(circle at 78% 24%, rgba(14, 165, 233, 0.18), transparent 24%),
+        linear-gradient(160deg, #eef4ff 0%, #dbe8ff 100%);
+    }
+
+    .sidebar {
+      position: absolute;
+      top: 24px;
+      bottom: 24px;
+      padding: 0;
+      z-index: 20;
+      transition: transform 0.22s ease;
+    }
+
+    .sidebar-left {
+      left: 24px;
+      width: 400px;
+    }
+
+    .sidebar-right {
+      right: 24px;
+      width: 360px;
+    }
+
+    .sidebar-left.collapsed {
+      transform: translateX(calc(-100% + 44px));
+    }
+
+    .sidebar-right.collapsed {
+      transform: translateX(calc(100% - 44px));
+    }
+
+    .sidebar-inner {
+      height: 100%;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(216, 225, 238, 0.9);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 16px;
+      height: 47px;
+      /* panel header height */
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.68);
+    }
+
+    .panel-head strong {
+      font-size: 16px;
+      letter-spacing: 0.01em;
+      display: flex;
+      align-items: center;
+      padding: 14px 0;
+    }
+
+    .panel-toggle {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1;
+      padding: 0;
+      align-self: center;
+      margin-top: 15px;
+    }
+
+    .ai-reopen-btn {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      z-index: 21;
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #2b6ef3 0%, #4f8fff 100%);
+      border: 0;
+      color: #fff;
+      font-size: 24px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 14px 26px rgba(20, 34, 66, 0.1);
+    }
+
+    .ai-reopen-btn:hover {
+      filter: brightness(1.03);
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 0;
+      align-items: stretch;
+      align-self: stretch;
+      height: 100%;
+    }
+
+    .filter-tab {
+      min-width: 120px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-bottom: 0;
+      border-radius: 16px 16px 0 0;
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+      box-shadow: 0 10px 18px rgba(20, 34, 66, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: calc(100% - 8px);
+      /* ?붿꽭 ?꾪꽣 ?꾩뿉 怨듦컙留뚮뱾湲?*/
+      align-self: flex-end;
+      transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .filter-tab+.filter-tab {
+      margin-left: -1px;
+    }
+
+    .filter-tab.active {
+      background: var(--brand-soft);
+      color: var(--brand-deep);
+      border-color: rgba(43, 110, 243, 0.32);
+      box-shadow: 0 18px 32px rgba(20, 34, 66, 0.1);
+      position: relative;
+      z-index: 1;
+    }
+
+    .left-scroll {
+      flex: 0 0 auto;
+    }
+
+    .search-box,
+    .section {
+      padding: 20px 22px;
+    }
+
+    .search-box {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .search-box label,
+    .section-title {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: rgba(43, 110, 243, 0.6);
+      box-shadow: 0 0 0 4px rgba(43, 110, 243, 0.12);
+    }
+
+    button {
+      font: inherit;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .primary-btn {
+      background: var(--brand);
+      color: #fff;
+      border-radius: 14px;
+      padding: 0 16px;
+      font-weight: 700;
+      min-width: 68px;
+    }
+
+    .ghost-btn {
+      background: transparent;
+      color: var(--brand);
+      font-weight: 700;
+      padding: 0;
+    }
+
+    .search-results,
+    .selected-workplace {
+      margin-top: 14px;
+    }
+
+    .search-results {
+      display: grid;
+      gap: 8px;
+      max-height: 190px;
+      overflow-y: auto;
+    }
+
+    .result-item,
+    .selected-workplace {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 16px;
+      padding: 13px 14px;
+    }
+
+    .result-item {
+      width: 100%;
+      text-align: left;
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .result-item:hover {
+      border-color: rgba(43, 110, 243, 0.35);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(18, 36, 70, 0.08);
+    }
+
+    .place-name {
+      font-weight: 700;
+    }
+
+    .place-address {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .selected-workplace {
+      background: var(--brand-soft);
+      border-color: rgba(43, 110, 243, 0.18);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .mini-clear {
+      color: var(--danger);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 2px 0;
+      white-space: nowrap;
+    }
+
+    .header {
+      padding: 20px 22px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 25px;
+      line-height: 1.2;
+    }
+
+    .header p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .control-card {
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 18px;
+      padding: 16px;
+      margin-top: 14px;
+    }
+
+    .app-content {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .content-panel {
+      display: none;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .content-panel.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .deal-gate {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+    }
+
+    .deal-gate-inner {
+      width: 100%;
+      max-width: 260px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .deal-gate-btn {
+      width: 100%;
+      min-height: 86px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-size: 22px;
+      font-weight: 800;
+      box-shadow: 0 14px 28px rgba(20, 34, 66, 0.06);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .deal-gate-btn:hover {
+      transform: translateY(-1px);
+      background: var(--brand-soft);
+      color: var(--brand-deep);
+      border-color: rgba(43, 110, 243, 0.32);
+      box-shadow: 0 18px 32px rgba(20, 34, 66, 0.1);
+    }
+
+    .chip-row,
+    .primary-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip-btn,
+    .primary-choice {
+      min-width: 98px;
+      padding: 10px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      transition: all 0.18s ease;
+    }
+
+    .chip-btn.active,
+    .primary-choice.active {
+      background: var(--brand);
+      color: #fff;
+      border-color: var(--brand);
+      box-shadow: 0 10px 18px rgba(43, 110, 243, 0.18);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .single-column {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .field-card {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 16px;
+      padding: 11px;
+      min-width: 0;
+    }
+
+    .field-card .field-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+
+    .number-stepper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .step-btn {
+      flex: 0 0 24px;
+      width: 24px;
+      height: 24px;
+      border-radius: 9px;
+      background: var(--panel-soft);
+      color: var(--brand-deep);
+      border: 1px solid var(--line);
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 700;
+      padding: 0;
+    }
+
+    .number-input {
+      appearance: textfield;
+      -moz-appearance: textfield;
+      flex: 1 1 auto;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 6px 6px;
+      background: #fff;
+      color: var(--text);
+      min-width: 0;
+      width: 100%;
+      overflow: visible;
+    }
+
+    .number-input::-webkit-outer-spin-button,
+    .number-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .unit {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .budget-card-grid .number-input,
+    .commute-card-grid .number-input {
+      letter-spacing: 0.01em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .commute-card-grid {
+      margin-top: 10px;
+    }
+
+    .summary-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .summary-chip {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .summary-chip strong {
+      color: var(--text);
+      margin-right: 4px;
+    }
+
+    .action-card {
+      border-top: 1px solid rgba(216, 225, 238, 0.9);
+      background: transparent;
+      border-radius: 0;
+      padding: 16px 0 0;
+      margin-top: 16px;
+      box-shadow: none;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .action-main-btn {
+      min-height: 52px;
+      border-radius: 16px;
+      border: 0;
+      background: linear-gradient(135deg, #2b6ef3 0%, #4f8fff 100%);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 18px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 800;
+      box-shadow: 0 14px 26px rgba(43, 110, 243, 0.22);
+    }
+
+    .action-main-btn:hover {
+      filter: brightness(1.02);
+    }
+
+    .action-main-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .action-main-copy {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .action-main-title {
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .action-main-sub {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.84);
+      line-height: 1.3;
+    }
+
+    .action-secondary-btn {
+      min-height: 0;
+      border: 0;
+      background: transparent;
+      color: var(--brand);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      padding: 2px 4px;
+      font-size: 13px;
+      font-weight: 700;
+      width: fit-content;
+    }
+
+    .action-secondary-btn:hover {
+      color: var(--brand-deep);
+      text-decoration: underline;
+    }
+
+    .action-secondary-icon {
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .action-secondary-copy {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-secondary-title {
+      color: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .action-secondary-sub {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .results {
+      padding: 18px 22px 22px;
+      flex: 1;
+    }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .results-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .result-count {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .debug-summary {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(43, 110, 243, 0.28);
+      background: #f8fbff;
+      color: var(--brand-deep);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .results-divider {
+      height: 1px;
+      margin: 14px 0 16px;
+      background: linear-gradient(90deg, rgba(216, 225, 238, 0), rgba(216, 225, 238, 1), rgba(216, 225, 238, 0));
+    }
+
+    .empty-state,
+    .suggestions {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      padding: 16px;
+    }
+
+    .suggestions {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .suggestion-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--panel-soft);
+    }
+
+    .result-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .result-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .result-card.selected {
+      border-color: rgba(43, 110, 243, 0.48);
+      box-shadow: 0 16px 28px rgba(43, 110, 243, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .result-card.attention {
+      animation: cardAttention 1.2s ease;
+    }
+
+    @keyframes cardAttention {
+      0% {
+        box-shadow: 0 0 0 rgba(43, 110, 243, 0);
+      }
+
+      30% {
+        box-shadow: 0 0 0 6px rgba(43, 110, 243, 0.18);
+      }
+
+      100% {
+        box-shadow: 0 16px 28px rgba(43, 110, 243, 0.12);
+      }
+    }
+
+    .result-card h3 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .result-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .result-title-wrap {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #edf3ff;
+      color: var(--brand-deep);
+      border: 1px solid rgba(43, 110, 243, 0.18);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .debug-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #f4f7fb;
+      color: var(--muted);
+      border: 1px solid rgba(99, 112, 134, 0.18);
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .meta-line,
+    .reason-line {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .reason-line {
+      overflow: visible;
+    }
+
+    .reason-panel {
+      margin-top: 10px;
+      padding: 14px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(43, 110, 243, 0.05), rgba(255, 255, 255, 0.92));
+      border: 1px solid rgba(43, 110, 243, 0.12);
+    }
+
+    .reason-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .reason-head-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .reason-chip-row {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .reason-summary-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .reason-summary-section {
+      display: grid;
+      gap: 10px;
+    }
+
+    .reason-summary-heading {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    .reason-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(99, 112, 134, 0.16);
+      color: var(--text);
+      font-size: 12.5px;
+      line-height: 1.45;
+      font-weight: 700;
+      box-shadow: 0 8px 18px rgba(20, 34, 66, 0.05);
+    }
+
+    .reason-chip-icon,
+    .reason-detail-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: rgba(43, 110, 243, 0.08);
+      color: var(--brand-deep);
+      font-size: 12px;
+      font-weight: 900;
+      flex: 0 0 20px;
+    }
+
+    .reason-detail-list {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .reason-detail-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 11px 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(99, 112, 134, 0.12);
+    }
+
+    .reason-detail-text {
+      min-width: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      word-break: keep-all;
+      white-space: pre-wrap;
+    }
+
+    .reason-toggle {
+      border: 0;
+      background: transparent;
+      color: var(--brand-deep);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 0;
+      white-space: nowrap;
+    }
+
+    .summary-line {
+      margin-top: 8px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .result-tags {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .result-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: var(--panel-soft);
+      border: 1px solid rgba(43, 110, 243, 0.12);
+      color: var(--brand-deep);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .price-line {
+      margin-top: 10px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .variant-note {
+      margin-top: 8px;
+      color: var(--brand-deep);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .result-actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .result-actions .secondary-btn {
+      flex: 1 1 0;
+      min-height: 56px;
+      padding: 0 18px;
+      border-radius: 18px;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .result-actions .secondary-btn.result-secondary-btn {
+      background: #e8efff;
+      color: #3050b6;
+      border: 1px solid rgba(43, 110, 243, 0.08);
+    }
+
+    .result-actions .secondary-btn.result-primary-btn {
+      background: linear-gradient(135deg, #4f74ea 0%, #5d80f2 100%);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(79, 116, 234, 0.18);
+      border: 0;
+    }
+
+    .route-details {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .route-details-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .route-details-head strong {
+      font-size: 13px;
+    }
+
+    .route-hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .route-summary-card {
+      border: 1px solid rgba(43, 110, 243, 0.12);
+      border-radius: 16px;
+      background: linear-gradient(180deg, #f8fbff 0%, #f1f6ff 100%);
+      padding: 14px;
+    }
+
+    .route-summary-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .route-summary-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .route-summary-caption {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .route-mode-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 58px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+      background: var(--brand-deep);
+      white-space: nowrap;
+    }
+
+    .route-mode-badge.walk {
+      background: #4f46e5;
+    }
+
+    .route-mode-badge.bus {
+      background: #15803d;
+    }
+
+    .route-mode-badge.subway {
+      background: #ea580c;
+    }
+
+    .route-mode-badge.car {
+      background: #1f2937;
+    }
+
+    .route-summary-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .route-metric {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(43, 110, 243, 0.1);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1;
+    }
+
+    .route-metric strong {
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .secondary-btn {
+      border-radius: 14px;
+      padding: 10px 14px;
+      background: var(--brand-soft);
+      color: var(--brand-deep);
+      font-weight: 700;
+    }
+
+    .load-more-wrap {
+      margin-top: 14px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .route-steps {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .route-step {
+      --route-step-color-strong: rgba(43, 110, 243, 0.28);
+      --route-step-color-weak: rgba(43, 110, 243, 0.06);
+      position: relative;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .route-step-marker {
+      position: relative;
+      width: 28px;
+      min-height: 100%;
+      display: flex;
+      justify-content: center;
+      flex: 0 0 28px;
+    }
+
+    .route-step-marker::after {
+      content: "";
+      position: absolute;
+      top: 28px;
+      bottom: -12px;
+      left: 50%;
+      width: 2px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, var(--route-step-color-strong), var(--route-step-color-weak));
+    }
+
+    .route-step:last-child .route-step-marker::after {
+      display: none;
+    }
+
+    .route-step-dot {
+      position: relative;
+      z-index: 1;
+      width: 14px;
+      height: 14px;
+      margin-top: 6px;
+      border-radius: 999px;
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 2px rgba(43, 110, 243, 0.16);
+      background: var(--brand);
+    }
+
+    .route-step-dot.walk {
+      background: #4f46e5;
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.16);
+    }
+
+    .route-step-dot.bus {
+      background: #15803d;
+      box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.16);
+    }
+
+    .route-step-dot.subway {
+      background: #ea580c;
+      box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.16);
+    }
+
+    .route-step-dot.car {
+      background: #1f2937;
+      box-shadow: 0 0 0 2px rgba(31, 41, 55, 0.14);
+    }
+
+    .route-step-content {
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid rgba(217, 225, 236, 0.95);
+    }
+
+    .route-step-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .route-step strong {
+      display: block;
+      margin: 0;
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .route-step-desc {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .route-step-meta {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .route-step-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .route-secondary-panel {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px dashed rgba(99, 112, 134, 0.35);
+    }
+
+    .route-secondary-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .route-secondary-text {
+      margin-top: 4px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .ai-note {
+      margin: 18px 22px 0;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .ai-chat {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-messages {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 18px 22px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-empty {
+      border: 1px dashed var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .chat-message {
+      display: flex;
+    }
+
+    .chat-message.user {
+      justify-content: flex-end;
+    }
+
+    .chat-message.assistant {
+      justify-content: flex-start;
+    }
+
+    .chat-bubble {
+      max-width: 85%;
+      padding: 11px 14px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: keep-all;
+      box-shadow: 0 10px 24px rgba(20, 34, 66, 0.06);
+    }
+
+    .chat-message.user .chat-bubble {
+      background: var(--brand);
+      color: #fff;
+      border-bottom-right-radius: 6px;
+    }
+
+    .chat-message.assistant .chat-bubble {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-bottom-left-radius: 6px;
+    }
+
+    .composer {
+      padding: 14px 22px 22px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .composer textarea {
+      min-height: 64px;
+      max-height: 96px;
+      flex: none;
+    }
+
+    .composer-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 0;
+    }
+
+    .ai-flow {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 18px 22px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .ai-flow-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      padding: 16px;
+    }
+
+    .ai-flow-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .ai-flow-copy {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .car-time-copy {
+      margin: 8px 0 8px;
+    }
+
+    .car-time-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .car-time-select,
+    .car-time-input {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 0 12px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      width: 100%;
+      min-width: 0;
+    }
+
+    .car-time-select {
+      flex: 0 0 160px;
+      max-width: 170px;
+      appearance: auto;
+      -moz-appearance: auto;
+    }
+
+    .car-time-input {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .car-time-input-wrap {
+      position: relative;
+      flex: 0 0 132px;
+      min-width: 132px;
+      max-width: 140px;
+    }
+
+    .car-time-input-wrap .car-time-input {
+      padding: 0 34px 0 10px;
+    }
+
+    .car-time-picker-btn {
+      position: absolute;
+      top: 50%;
+      right: 6px;
+      transform: translateY(-50%);
+      width: 24px;
+      min-width: 24px;
+      min-height: 42px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .car-time-native {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 1px;
+      height: 1px;
+    }
+
+    .ai-choice-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .ai-choice-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 14px;
+      padding: 11px 13px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .ai-choice-btn.active {
+      border-color: rgba(43, 110, 243, 0.35);
+      background: var(--brand-soft);
+      color: var(--brand-deep);
+      box-shadow: 0 10px 18px rgba(43, 110, 243, 0.12);
+    }
+
+    .ai-summary-box {
+      border-radius: 14px;
+      background: var(--panel-soft);
+      border: 1px solid rgba(43, 110, 243, 0.14);
+      padding: 12px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .ai-summary-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .ai-summary-tag {
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid rgba(43, 110, 243, 0.18);
+      color: var(--brand-deep);
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .ai-inline-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ai-inline-input {
+      min-height: 74px;
+      resize: vertical;
+    }
+
+    .ai-inline-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .parsed-condition-box,
+    .engine-condition-details {
+      border: 1px solid rgba(43, 110, 243, 0.14);
+      background: var(--panel-soft);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    .parsed-condition-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .ai-parse-status {
+      margin-top: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .ai-parse-status.error {
+      color: #b91c1c;
+    }
+
+    .ai-parse-status.success {
+      color: #166534;
+    }
+
+    .parsed-condition-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--brand-deep);
+    }
+
+    .parsed-condition-line {
+      color: var(--muted);
+    }
+
+    .engine-condition-details summary {
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--brand-deep);
+      list-style: none;
+    }
+
+    .engine-condition-details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .engine-condition-json {
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 10px 0 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text);
+      background: #fff;
+      border: 1px solid rgba(43, 110, 243, 0.12);
+      border-radius: 12px;
+      padding: 10px 12px;
+      max-height: 220px;
+      overflow: auto;
+    }
+
+    @media (max-width: 1100px) {
+      .sidebar-left {
+        left: 18px;
+        top: 18px;
+        bottom: 18px;
+        width: 360px;
+      }
+
+      .sidebar-right {
+        right: 18px;
+        top: 18px;
+        bottom: 18px;
+        width: 320px;
+      }
+    }
+
+    @media (max-width: 640px) {
+
+      .grid-2,
+      .search-row {
+        grid-template-columns: 1fr;
+      }
+
+      .primary-btn {
+        min-height: 46px;
+      }
+
+      .sidebar-left,
+      .sidebar-right {
+        left: 12px;
+        right: 12px;
+        width: auto;
+      }
+
+      .sidebar-left {
+        top: 12px;
+        bottom: 330px;
+      }
+
+      .sidebar-right {
+        top: auto;
+        bottom: 12px;
+        height: 306px;
+      }
+
+      .car-time-select,
+      .car-time-input-wrap {
+        flex-basis: 100%;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <section class="map-panel">
+      <div class="map-shell">
+        <div id="map"></div>
+        <div id="map-empty" class="map-empty">직장이나 학교를 선택하면 위치와 추천 매물이 지도에 표시됩니다.</div>
+      </div>
+    </section>
+
+    <aside id="filter-panel" class="sidebar sidebar-left">
+      <div class="sidebar-inner">
+        <div class="panel-head">
+          <strong id="filter-head-title">&#54596;&#53552;</strong>
+          <div id="filter-tabs" class="filter-tabs hidden">
+            <button type="button" class="filter-tab" data-deal="monthly">&#50900;&#49464; &#54596;&#53552;</button>
+            <button type="button" class="filter-tab" data-deal="jeonse">&#51204;&#49464; &#54596;&#53552;</button>
+            <button type="button" id="recommend-tab" class="filter-tab hidden" data-deal="recommend">&#52628;&#52380;
+              &#51665;</button>
+          </div>
+          <button type="button" id="toggle-filter-panel" class="panel-toggle">-</button>
+        </div>
+        <div id="deal-gate" class="deal-gate">
+          <div class="deal-gate-inner">
+            <button type="button" class="deal-gate-btn" data-deal="monthly">&#50900;&#49464;</button>
+            <button type="button" class="deal-gate-btn" data-deal="jeonse">&#51204;&#49464;</button>
+          </div>
+        </div>
+        <div id="app-content" class="app-content hidden">
+          <div id="filters-panel" class="content-panel active">
+            <div class="search-box">
+              <label for="workplace_search">직장/학교 검색</label>
+              <div class="search-row">
+                <input id="workplace_search" type="text" placeholder="예: 판교 테크노밸리, IBK기업은행">
+                <button type="button" id="search-workplace-btn" class="primary-btn">찾기</button>
+              </div>
+
+              <div id="workplace-slot">
+                <div id="search-results" class="search-results hidden"></div>
+                <div id="selected-workplace" class="selected-workplace hidden"></div>
+              </div>
+
+              <div id="transport-card" class="control-card hidden">
+                <div class="section-title">이동 기준</div>
+                <div class="chip-row">
+                  <button type="button" class="chip-btn transport-chip" data-mode="transit">대중교통</button>
+                  <button type="button" class="chip-btn transport-chip" data-mode="car">자동차</button>
+                </div>
+                <div id="commute-wrap" class="hidden" style="margin-top: 14px;">
+                  <div class="section-title" style="margin-bottom: 0;">&#52572;&#45824; &#53685;&#44540;
+                    &#49884;&#44036;
+                  </div>
+                  <div id="commute-grid" class="grid-2 budget-card-grid commute-card-grid hidden"></div>
+                </div>
+                <div id="car-time-wrap" class="hidden" style="margin-top: 12px;">
+                  <div class="section-title" style="margin-bottom: 0;">자동차 기준 시각</div>
+                  <div class="ai-flow-copy car-time-copy">선택한 시간대의 교통 상황을 반영해 계산해요.</div>
+                  <div class="car-time-row">
+                    <select id="car-trip-select" class="car-time-select">
+                      <option value="commute_to_work">출근길 기준</option>
+                      <option value="commute_from_work">퇴근길 기준</option>
+                    </select>
+                    <div class="car-time-input-wrap">
+                      <input id="car-time-input" class="car-time-input" type="text" inputmode="numeric" placeholder="08:00" maxlength="5" value="08:00">
+                      <button type="button" id="car-time-picker-btn" class="car-time-picker-btn" aria-label="시간 선택" title="시간 선택">◷</button>
+                      <input id="car-time-native" class="car-time-native" type="time" step="300" value="08:00" tabindex="-1" aria-hidden="true">
+                    </div>
+                  </div>
+                </div>
+                <div id="primary-wrap" class="hidden" style="margin-top: 10px;">
+                  <div class="section-title" style="margin-bottom: 10px;">&#51452; &#51060;&#46041; &#44592;&#51456;
+                  </div>
+                  <div id="primary-block" class="chip-row">
+                    <button type="button" class="chip-btn primary-choice"
+                      data-primary="transit">&#45824;&#51473;&#44368;&#53685;</button>
+                    <button type="button" class="chip-btn primary-choice"
+                      data-primary="car">&#51088;&#46041;&#52264;</button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="budget-card" class="control-card hidden">
+                <div class="section-title">예산</div>
+                <div id="budget-grid" class="grid-2 budget-card-grid">
+                  <div class="field-card">
+                    <div class="field-label">보증금 상한</div>
+                    <div class="number-stepper">
+                      <button type="button" class="step-btn" data-step-target="deposit" data-step="-100">-</button>
+                      <input id="deposit-input" class="number-input" type="number" min="0" step="100"
+                        inputmode="numeric" placeholder="1500">
+                      <button type="button" class="step-btn" data-step-target="deposit" data-step="100">+</button>
+                    </div>
+                    <div class="unit">만원</div>
+                  </div>
+                  <div id="rent-field" class="field-card">
+                    <div class="field-label">월세 상한</div>
+                    <div class="number-stepper">
+                      <button type="button" class="step-btn" data-step-target="rent" data-step="-5">-</button>
+                      <input id="rent-input" class="number-input" type="number" min="0" step="5" inputmode="numeric"
+                        placeholder="60">
+                      <button type="button" class="step-btn" data-step-target="rent" data-step="5">+</button>
+                    </div>
+                    <div class="unit">만원</div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="ai-inline-card" class="control-card hidden ai-inline-card">
+                <div class="section-title">AI 추가 조건</div>
+                <div class="ai-flow-copy">지역 선호, 동네 분위기, 생활 편의시설처럼 숫자로 고르기 어려운 조건을 자유롭게 말해보세요.</div>
+                <textarea id="query-input" class="ai-inline-input" placeholder="예: 성동구는 싫고, 월세가 조금 높아도 회사랑 가까운 곳이 좋아요."></textarea>
+                <div id="ai-parse-status" class="ai-parse-status hidden"></div>
+                <div class="ai-inline-actions">
+                  <button type="button" id="parse-ai-btn" class="secondary-btn">AI가 조건 해석하기</button>
+                </div>
+                <div id="parsed-condition-box" class="parsed-condition-box hidden"></div>
+                <details id="engine-condition-details" class="engine-condition-details hidden">
+                  <summary>추천 엔진에 전달된 조건</summary>
+                  <pre id="engine-condition-json" class="engine-condition-json"></pre>
+                </details>
+              </div>
+
+              <div id="recommend-actions" class="action-card hidden">
+                <div class="action-buttons">
+                  <button type="button" id="quick-recommend-btn" class="action-main-btn">
+                    <span class="action-main-icon">⌂</span>
+                    <span class="action-main-copy">
+                      <span class="action-main-title">추천 보기</span>
+                      <span class="action-main-sub">설정한 조건으로 바로 확인</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div id="recommend-panel" class="content-panel">
+            <div class="results">
+              <div class="results-header">
+                <h2 class="results-title">추천 결과</h2>
+                <div id="result-count" class="result-count"></div>
+              </div>
+              <div id="selection-summary" class="summary-row hidden"></div>
+              <div id="result-debug-summary" class="debug-summary hidden"></div>
+              <div class="results-divider"></div>
+              <div id="results-body" class="empty-state">직장/학교를 선택하고 조건을 설정한 뒤 추천 보기를 눌러주세요.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <aside id="ai-panel" class="sidebar sidebar-right collapsed hidden"></aside>
+    <button type="button" id="ai-reopen-btn" class="ai-reopen-btn hidden" aria-label="추가 조건 열기"
+      title="추가 조건 열기">+</button>
+
+  </div>
+
+  <script>
+    const DEFAULTS = { deposit: 1500, rent: 60, transitCommute: 50, carCommute: 30 };
+    const DEBUG_MODE = new URLSearchParams(window.location.search).get("debug") === "1";
+    const appState = {
+      dealType: null,
+      workplace: null,
+      selectedModes: [],
+      primaryMode: null,
+      commuteLimits: { transit: DEFAULTS.transitCommute, car: DEFAULTS.carCommute },
+      carTimeProfile: {
+        enabled: false,
+        trip_type: "commute_to_work",
+        route_direction: "home_to_work",
+        time_basis: "departure",
+        time: "08:00",
+        selected_car_time: "08:00",
+        prediction_type: "departure",
+        initialized: false,
+        user_modified_time: false,
+        evening_default_applied: false,
+      },
+      depositMax: DEFAULTS.deposit,
+      rentMax: DEFAULTS.rent,
+      queryText: "",
+      aiFlow: {
+        referenceText: "",
+      },
+      aiParsedState: {
+        transport_mode: null,
+        transport: {},
+        hard_constraints: {},
+        soft_preferences: {},
+        route_preferences: {},
+        geo_constraints: {},
+        tradeoff_policy: {},
+        living_preferences: {},
+        unsupported_preferences: [],
+        priority_focus: "none",
+        reference_preferences: [],
+        must_have: [],
+        nice_to_have: [],
+        parsed_query_text: "",
+        parse_confidence: null,
+        needs_clarification: [],
+        summary_conditions: [],
+        final_applied_conditions: [],
+      },
+      leftTab: "filters",
+      hasRecommendations: false,
+      recommendations: [],
+      visibleRecommendationCount: 5,
+      selectedRecommendationIndex: null,
+      expandedRouteIndex: null,
+      expandedReasonIndex: null,
+      aiPanelEnabled: false,
+    };
+
+    const elements = {
+      workplaceSearch: document.getElementById("workplace_search"),
+      searchButton: document.getElementById("search-workplace-btn"),
+      searchResults: document.getElementById("search-results"),
+      selectedWorkplace: document.getElementById("selected-workplace"),
+      dealGate: document.getElementById("deal-gate"),
+      filterHeadTitle: document.getElementById("filter-head-title"),
+      filterTabs: document.getElementById("filter-tabs"),
+      appContent: document.getElementById("app-content"),
+      transportCard: document.getElementById("transport-card"),
+      commuteWrap: document.getElementById("commute-wrap"),
+      commuteGrid: document.getElementById("commute-grid"),
+      carTimeWrap: document.getElementById("car-time-wrap"),
+      carTripSelect: document.getElementById("car-trip-select"),
+      carTimeInput: document.getElementById("car-time-input"),
+      carTimePickerButton: document.getElementById("car-time-picker-btn"),
+      carTimeNative: document.getElementById("car-time-native"),
+      primaryWrap: document.getElementById("primary-wrap"),
+      primaryBlock: document.getElementById("primary-block"),
+      budgetCard: document.getElementById("budget-card"),
+      budgetGrid: document.getElementById("budget-grid"),
+      rentField: document.getElementById("rent-field"),
+      summary: document.getElementById("selection-summary"),
+      recommendActions: document.getElementById("recommend-actions"),
+      quickRecommendButton: document.getElementById("quick-recommend-btn"),
+      parseAiButton: document.getElementById("parse-ai-btn"),
+      depositInput: document.getElementById("deposit-input"),
+      rentInput: document.getElementById("rent-input"),
+      aiInlineCard: document.getElementById("ai-inline-card"),
+      parseStatus: document.getElementById("ai-parse-status"),
+      parsedConditionBox: document.getElementById("parsed-condition-box"),
+      engineConditionDetails: document.getElementById("engine-condition-details"),
+      engineConditionJson: document.getElementById("engine-condition-json"),
+      queryInput: document.getElementById("query-input"),
+      resultsBody: document.getElementById("results-body"),
+      resultCount: document.getElementById("result-count"),
+      resultDebugSummary: document.getElementById("result-debug-summary"),
+      recommendTab: document.getElementById("recommend-tab"),
+      filtersPanel: document.getElementById("filters-panel"),
+      recommendPanel: document.getElementById("recommend-panel"),
+      mapEmpty: document.getElementById("map-empty"),
+      filterPanel: document.getElementById("filter-panel"),
+      aiPanel: document.getElementById("ai-panel"),
+      aiReopenButton: document.getElementById("ai-reopen-btn"),
+    };
+
+    let map;
+    let workplaceMarker = null;
+    let listingMarkers = [];
+    let routePolylines = [];
+    let livingFacilityMarkers = [];
+    let aiParseInFlight = false;
+    let aiParseStatusTimer = null;
+    console.log("UI_VERSION", "route-display-v8");
+    function buildMarkerImage(fillColor, strokeColor = "#ffffff", size = 38, label = "", accentColor = "rgba(24, 77, 184, 0.18)") {
+      const text = String(label || "").slice(0, 3);
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">
+          <defs>
+            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(16, 24, 40, 0.22)"/>
+            </filter>
+          </defs>
+          <circle cx="12" cy="12" r="11" fill="${accentColor}" />
+          <path d="M12 2.4c-3.76 0-6.8 3.04-6.8 6.8 0 4.95 5.25 9.73 6.2 10.55a.92.92 0 0 0 1.2 0c.95-.82 6.2-5.6 6.2-10.55 0-3.76-3.04-6.8-6.8-6.8Z" fill="${fillColor}" stroke="${strokeColor}" stroke-width="1.2" filter="url(#shadow)"/>
+          <circle cx="12" cy="9.3" r="4.4" fill="rgba(255,255,255,0.15)"/>
+          <text x="12" y="10.6" text-anchor="middle" font-size="5.3" font-weight="800" fill="#ffffff" font-family="Pretendard, Noto Sans KR, sans-serif">${text}</text>
+        </svg>`;
+      const encoded = window.btoa(unescape(encodeURIComponent(svg)));
+      return new kakao.maps.MarkerImage(`data:image/svg+xml;base64,${encoded}`, new kakao.maps.Size(size, size));
+    }
+
+    function buildLivingMarkerImage(fillColor, label = "") {
+      const text = String(label || "").slice(0, 1);
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+          <circle cx="13" cy="13" r="11" fill="${fillColor}" fill-opacity="0.92" />
+          <circle cx="13" cy="13" r="11.5" fill="none" stroke="#ffffff" stroke-width="2" />
+          <text x="13" y="16" text-anchor="middle" font-size="10.5" font-weight="800" fill="#ffffff" font-family="Pretendard, Noto Sans KR, sans-serif">${text}</text>
+        </svg>`;
+      const encoded = window.btoa(unescape(encodeURIComponent(svg)));
+      return new kakao.maps.MarkerImage(`data:image/svg+xml;base64,${encoded}`, new kakao.maps.Size(26, 26));
+    }
+
+    function noOp() { }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function normalizeValue(value, step, fallback) {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(0, Math.round(parsed / step) * step);
+    }
+
+    function selectedLabel(mode) {
+      return mode === "car" ? "자동차" : "대중교통";
+    }
+
+    function formatPrice(item) {
+      if (item.deposit_manwon == null && item.monthly_rent_manwon == null) return "가격 정보 없음";
+      if ((item.monthly_rent_manwon || 0) <= 0) return `전세 ${item.deposit_manwon ?? "-"}만원`;
+      return `보증금 ${item.deposit_manwon ?? "-"}만원 / 월세 ${item.monthly_rent_manwon ?? "-"}만원`;
+    }
+
+    function formatArea(item) {
+      if (item.area_pyeong == null) return "평수 정보 없음";
+      return `${item.area_pyeong}평`;
+    }
+
+    function formatVariantNote(item) {
+      const count = Number(item.price_variant_count || 0);
+      if (!count) return "";
+      return `같은 집의 다른 가격 옵션 ${count}개가 함께 추천됐어요.`;
+    }
+
+    function formatDisplayTitle(item) {
+      const rawTitle = (item.title || "").trim();
+      const houseType = (item.house_type || "").trim();
+      if (rawTitle && rawTitle !== houseType && rawTitle.length >= 2) {
+        return rawTitle;
+      }
+
+      const address = (item.address || "").trim();
+      if (!address) return houseType || "이름 없는 매물";
+      const parts = address.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        return parts.slice(-2).join(" ");
+      }
+      return address;
+    }
+
+    function recommendationGroupKey(item) {
+      return [
+        item.address || "",
+        item.title || "",
+        item.house_type || "",
+        item.area_pyeong ?? "",
+      ].join("||");
+    }
+
+    function buildVisibleRecommendationCards(recommendations, distinctLimit) {
+      const cards = [];
+      const groupMap = new Map();
+
+      for (const item of recommendations) {
+        if (cards.length >= distinctLimit) break;
+        const key = recommendationGroupKey(item);
+        const existingIndex = groupMap.get(key);
+        if (existingIndex !== undefined) {
+          cards[existingIndex].price_options.push(item);
+          continue;
+        }
+        groupMap.set(key, cards.length);
+        cards.push({
+          ...item,
+          price_options: [item],
+        });
+      }
+
+      cards.forEach((card) => {
+        card.price_options.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+        card.price_variant_count = Math.max(0, card.price_options.length - 1);
+      });
+      cards.forEach((card, index) => {
+        card.display_rank = index + 1;
+      });
+      return cards;
+    }
+
+    function buildPriceOptionList(item) {
+      const options = item.price_options || [];
+      if (options.length <= 1) return "";
+      return options.slice(1).map((option) => {
+        return `추가 옵션 ${formatPrice(option)}`;
+      }).join(" · ");
+    }
+
+    function routeText(item) {
+      if (item.route_type === "walk" || ["WALKABLE_NO_TRANSIT", "WALKABLE_IN_CAR_MODE", "NEAR_DESTINATION"].includes(item.route_status)) {
+        return formatWalkInfo(item.duration_min, item.walk_distance_m || item.total_walk_m || 0);
+      }
+      if (item.route_type === "car") return item.distance_km != null ? `자동차 ${item.duration_min}분 · ${item.distance_km}km` : `자동차 ${item.duration_min}분`;
+      const transferCount = routeTransferCount(item);
+      return `대중교통 ${item.duration_min}분 · 환승 ${transferCount}회 · ${formatWalkInfo(item.walk_time_min, item.total_walk_m || 0)}`;
+    }
+
+    function formatRouteSourceDistribution(distribution) {
+      if (!distribution || typeof distribution !== "object") return "";
+      return Object.entries(distribution)
+        .sort((a, b) => b[1] - a[1])
+        .map(([key, value]) => `${key} ${value}개`)
+        .join(", ");
+    }
+
+    const LIVING_CATEGORY_LABELS = {
+      cafe: "카페",
+      hospital: "병원",
+      laundry: "세탁소",
+      gym: "헬스장",
+      large_store: "대형마트",
+      convenience_store: "편의점",
+      light_food_snack: "간단음식/간식",
+    };
+
+    function selectedLivingLabels(parsed) {
+      const living = parsed?.living_preferences || {};
+      return Object.entries(living)
+        .filter(([, config]) => Boolean(config && config.selected))
+        .map(([category]) => LIVING_CATEGORY_LABELS[category] || category);
+    }
+
+    function unsupportedPreferenceLabels(parsed) {
+      const unsupported = parsed?.unsupported_preferences || [];
+      return unsupported.map((item) => String(item || "").trim()).filter(Boolean);
+    }
+
+    function renderDebugSummary(meta) {
+      if (!DEBUG_MODE) {
+        elements.resultDebugSummary.classList.add("hidden");
+        elements.resultDebugSummary.innerHTML = "";
+        return;
+      }
+      const distributionText = formatRouteSourceDistribution(meta.route_source_distribution);
+      const preflight = meta.transit_preflight_status || meta.odsay_preflight_status;
+      const provider = meta.transit_preflight_provider;
+      const carProfile = meta.car_time_profile || {};
+      const carProvider = meta.car_route_provider;
+      const carRequestedProvider = meta.car_route_requested_provider;
+      const carTimeBasis = meta.car_route_time_basis;
+      const carTimeLabel = meta.car_route_time_label;
+      const carTimeSupported = meta.car_route_time_supported;
+      const carRouteDirection = meta.car_route_direction;
+      const selectedCarTime = meta.selected_car_time;
+      const carPredictionType = meta.car_route_prediction_type;
+      const carPredictionTime = meta.car_route_prediction_time;
+      const carDepartureLat = meta.car_route_departure_lat;
+      const carDepartureLng = meta.car_route_departure_lng;
+      const carDestinationLat = meta.car_route_destination_lat;
+      const carDestinationLng = meta.car_route_destination_lng;
+      const carHttpStatus = meta.car_route_http_status;
+      const carResponseReceived = meta.car_route_response_received;
+      const carErrorCode = meta.car_route_error_code;
+      const carErrorMessage = meta.car_route_error_message;
+      const carFailure = meta.car_route_failure_detail;
+      const carFallbackUsed = meta.car_route_fallback_used;
+      if (!distributionText && !preflight && !carProvider && !carTimeBasis && !carTimeLabel && !carHttpStatus && !carFailure && !carErrorCode && !carErrorMessage && !carPredictionType && !carPredictionTime) {
+        elements.resultDebugSummary.classList.add("hidden");
+        elements.resultDebugSummary.innerHTML = "";
+        return;
+      }
+      const lines = [];
+      if (distributionText) lines.push(`이번 추천 경로 출처: ${distributionText}`);
+      if (preflight) lines.push(`${provider || "TRANSIT"} preflight: ${preflight}`);
+      if (carProvider) {
+        const providerText = carRequestedProvider && carRequestedProvider !== carProvider
+          ? `${carRequestedProvider} → ${carProvider}`
+          : carProvider;
+        const fallbackText = carFallbackUsed ? " (fallback 사용)" : "";
+        lines.push(`자동차 provider: ${providerText}${fallbackText}`);
+      }
+      if (carProfile && Object.keys(carProfile).length) {
+        if (carProfile.enabled != null) lines.push(`car_time_profile.enabled: ${carProfile.enabled ? "true" : "false"}`);
+        if (carProfile.trip_type) lines.push(`car_time_profile.trip_type: ${carProfile.trip_type}`);
+        if (carProfile.route_direction) lines.push(`car_time_profile.route_direction: ${carProfile.route_direction}`);
+        if (carProfile.selected_car_time) lines.push(`car_time_profile.selected_car_time: ${carProfile.selected_car_time}`);
+        if (carProfile.time) lines.push(`car_time_profile.time: ${carProfile.time}`);
+        if (carProfile.prediction_type) lines.push(`car_time_profile.prediction_type: ${carProfile.prediction_type}`);
+        if (carProfile.prediction_time) lines.push(`car_time_profile.prediction_time: ${carProfile.prediction_time}`);
+      }
+      if (carTimeLabel) lines.push(`자동차 선택 기준: ${carTimeLabel}`);
+      if (selectedCarTime) lines.push(`자동차 선택 시각: ${selectedCarTime}`);
+      if (carRouteDirection) lines.push(`자동차 방향: ${carRouteDirection}`);
+      if (carTimeSupported != null) lines.push(`자동차 시간대 직접 반영: ${carTimeSupported ? "yes" : "no"}`);
+      if (carTimeBasis) lines.push(`자동차 시간대 적용 상태: ${carTimeBasis}`);
+      if (carPredictionType) lines.push(`자동차 prediction_type: ${carPredictionType}`);
+      if (carPredictionTime) lines.push(`자동차 prediction_time: ${carPredictionTime}`);
+      if (carDepartureLat != null && carDepartureLng != null) lines.push(`출발지: ${carDepartureLng}, ${carDepartureLat}`);
+      if (carDestinationLat != null && carDestinationLng != null) lines.push(`도착지: ${carDestinationLng}, ${carDestinationLat}`);
+      if (carHttpStatus != null) lines.push(`자동차 HTTP: ${carHttpStatus}`);
+      if (carResponseReceived != null) lines.push(`자동차 응답 수신: ${carResponseReceived ? "yes" : "no"}`);
+      if (carErrorCode) lines.push(`자동차 error_code: ${carErrorCode}`);
+      if (carErrorMessage) lines.push(`자동차 error_message: ${carErrorMessage}`);
+      if (carFailure) lines.push(`자동차 실패: ${carFailure}`);
+      elements.resultDebugSummary.innerHTML = lines.join("<br>");
+      elements.resultDebugSummary.classList.remove("hidden");
+    }
+
+    function buildParsedQueryNotice(meta) {
+      const parsed = meta?.parsed_query || {};
+      const lines = getVisibleSummaryConditions(parsed);
+      const clarifications = (parsed.needs_clarification || []).filter((item) => {
+        const label = String(item || "").trim();
+        return label && !["transport_mode", "deposit_max", "rent_max", "workplace"].includes(label);
+      });
+
+      if (!lines.length && !clarifications.length) return "";
+
+      const jsonBlock = DEBUG_MODE
+        ? `<details class="engine-condition-details" open>
+          <summary>추천 엔진에 전달된 조건</summary>
+          <pre class="engine-condition-json">${escapeHtml(JSON.stringify({
+              geo_constraints: parsed.geo_constraints || {},
+              soft_preferences: parsed.soft_preferences || {},
+              living_preferences: parsed.living_preferences || {},
+              tradeoff_policy: parsed.tradeoff_policy || {},
+              must_have: parsed.must_have || [],
+              nice_to_have: parsed.nice_to_have || [],
+              unsupported_preferences: parsed.unsupported_preferences || [],
+              needs_clarification: parsed.needs_clarification || [],
+              summary_conditions: parsed.summary_conditions || [],
+              final_applied_conditions: parsed.final_applied_conditions || [],
+            }, null, 2))}</pre>
+          </details>`
+        : "";
+
+      return `
+        <div class="ai-summary-box" style="margin-bottom: 12px;">
+          <div class="ai-flow-title" style="margin-bottom: 8px;">AI가 해석한 조건</div>
+          <div class="parsed-condition-box" style="margin: 0;">
+            ${lines.map((condition) => `<div class="parsed-condition-line">${escapeHtml(condition.label || String(condition))}</div>`).join("")}
+            ${clarifications.length ? `<div class="parsed-condition-line">추가 질문 필요: ${escapeHtml(clarifications.join(", "))}</div>` : ""}
+          </div>
+          ${jsonBlock}
+        </div>
+      `;
+    }
+
+    function secondaryRouteText(item) {
+      if ((item.route_type === "transit" || item.route_type === "walk") && item.secondary_car?.duration_min != null) {
+        return item.secondary_car.distance_km != null ? `자동차 ${item.secondary_car.duration_min}분 · ${item.secondary_car.distance_km}km` : `자동차 ${item.secondary_car.duration_min}분`;
+      }
+      if (item.route_type === "car" && item.secondary_transit?.duration_min != null) {
+        const secondary = item.secondary_transit;
+        const transferCount = secondary.transfer_count ?? ((secondary.bus_transit_count || 0) + (secondary.subway_transit_count || 0));
+        return `대중교통 ${secondary.duration_min}분 · 환승 ${transferCount}회 · ${formatWalkInfo(secondary.walk_time_min, secondary.total_walk_m || 0)}`;
+      }
+      return "";
+    }
+
+    function livingSummaryText(item) {
+      const matches = item.living_matches || [];
+      const refs = item.living_reference_tags || [];
+      const parts = [];
+      if (matches.length) {
+        parts.push(...matches.slice(0, 3).map((match) => {
+          if (match.distance_m == null) return `${match.label} 정보 반영`;
+          const walkMinutes = Math.max(1, Math.round(Number(match.distance_m) / 70));
+          return `${match.label} 도보 약 ${walkMinutes}분(${match.distance_m}m)`;
+        }));
+      }
+      if (refs.length) {
+        parts.push(...refs.slice(0, 2).map((ref) => `${ref.label} 참고`));
+      }
+      if (!parts.length) return "";
+      return parts.join(" · ");
+    }
+
+    function hasSelectedLivingCategories(item) {
+      return Array.isArray(item.selected_living_categories) && item.selected_living_categories.length > 0;
+    }
+
+    function carTimeBandLabel(band) {
+      const mapping = {
+        very_relaxed: "통근 매우여유",
+        relaxed: "통근 여유",
+        comfortable: "통근 안정",
+        within_limit: "통근 한도내",
+        over_limit: "통근 초과",
+      };
+      return mapping[band] || "";
+    }
+
+    function budgetBandLabel(band) {
+      const mapping = {
+        very_light: "예산 매우여유",
+        light: "예산 안정",
+        moderate: "예산 무난",
+        tight: "예산 촘촘",
+        over_budget: "예산 초과",
+      };
+      return mapping[band] || "";
+    }
+
+    function buildResultTags(item) {
+      const tags = [];
+      if (item.route_type === "transit") {
+        const transferCount = routeTransferCount(item);
+        tags.push(`환승 ${transferCount}회`);
+        if (item.walk_time_min != null || item.total_walk_m != null) tags.push(formatWalkInfo(item.walk_time_min, item.total_walk_m || 0));
+      }
+      if (item.route_type === "car") {
+        const timeBandTag = carTimeBandLabel(item.car_time_band);
+        if (timeBandTag) tags.push(timeBandTag);
+        if (item.distance_km != null) tags.push(`주행 ${item.distance_km}km`);
+        const budgetTag = budgetBandLabel(item.budget_band);
+        if (budgetTag) {
+          tags.push(budgetTag);
+        } else {
+          if (item.monthly_rent_manwon != null && item.monthly_rent_manwon > 0) tags.push(`월세 ${item.monthly_rent_manwon}만원`);
+          if (item.deposit_manwon != null) tags.push(`보증금 ${item.deposit_manwon}만원`);
+        }
+      }
+      if (hasSelectedLivingCategories(item)) {
+        (item.living_matches || []).slice(0, 3).forEach((match) => {
+          if (match.distance_m != null) tags.push(`${match.label} ${match.distance_m}m`);
+        });
+      }
+      if (hasSelectedLivingCategories(item) && (item.living_matches?.length || item.living_reference_tags?.length)) {
+        tags.push("생활시설 직선거리 기준");
+      }
+      return tags.map((tag) => `<span class="result-tag">${tag}</span>`).join("");
+    }
+
+    function shouldShowReasonLine(item) {
+      return hasReasonDetails(item);
+    }
+
+    function bindResultsDelegation() {
+      return;
+    }
+
+    function routeTransferCount(item) {
+      const direct = Number(item?.display_transfer_count ?? item?.transfer_count);
+      if (Number.isFinite(direct) && direct > 0) return direct;
+      const fallback = Number(item?.bus_transit_count || 0) + Number(item?.subway_transit_count || 0);
+      return Number.isFinite(fallback) && fallback > 0 ? fallback : Math.max(0, direct || 0);
+    }
+
+    function reasonSummaryLines(item) {
+      const lines = (item.score_reasons || []).filter(Boolean).map((line) => String(line).trim()).filter(Boolean);
+      if (lines.length) return lines;
+      const fallback = String(item.final_reason || item.reason || "").trim();
+      return fallback ? [fallback] : [];
+    }
+
+    function cardSummaryText(item) {
+      const candidates = [
+        item.short_reason,
+        item.summary_reason,
+        item.llm_rank_summary,
+        item.final_reason,
+        item.reason,
+      ];
+      for (const value of candidates) {
+        const text = String(value || "").trim();
+        if (text) return text;
+      }
+      return "";
+    }
+
+    function reasonNarrativeText(item) {
+      const text = String(item.final_reason || item.reason || "").trim();
+      if (text) return text;
+      const fallback = reasonSummaryLines(item).join(" ");
+      return fallback;
+    }
+
+    function normalizeReasonText(text) {
+      return String(text || "").replace(/\s+/g, " ").trim();
+    }
+
+    function reasonMetaForText(text) {
+      const normalized = normalizeReasonText(text).toLowerCase();
+      if (!normalized) return { icon: "•", label: "근거" };
+      if (normalized.includes("도보") || normalized.includes("걸어서") || normalized.includes("walking")) return { icon: "🚶", label: "도보" };
+      if (normalized.includes("환승") || normalized.includes("transfer")) return { icon: "⇄", label: "환승" };
+      if (normalized.includes("통근") || normalized.includes("시간") || normalized.includes("분입니다")) return { icon: "⏱", label: "시간" };
+      if (normalized.includes("보증금") || normalized.includes("월세") || normalized.includes("예산")) return { icon: "₩", label: "예산" };
+      if (normalized.includes("생활") || normalized.includes("시설") || normalized.includes("카페") || normalized.includes("병원") || normalized.includes("편의점") || normalized.includes("마트")) return { icon: "⌂", label: "생활" };
+      if (normalized.includes("지하철") || normalized.includes("버스")) return { icon: "路", label: "경로" };
+      return { icon: "•", label: "근거" };
+    }
+
+    function buildReasonSummaryChips(item) {
+      const chips = [];
+      if (item.route_type === "transit" || item.route_type === "walk") {
+        if (item.duration_min != null) chips.push(`<span class="reason-chip"><span class="reason-chip-icon">⏱</span><span>총 통근 ${escapeHtml(String(item.duration_min))}분</span></span>`);
+        if (item.walk_time_min != null || item.total_walk_m != null) {
+          chips.push(`<span class="reason-chip"><span class="reason-chip-icon">🚶</span><span>${escapeHtml(formatWalkInfo(item.walk_time_min, item.total_walk_m || 0))}</span></span>`);
+        }
+        const transitMinutes = Number(item.subway_time_min ?? item.bus_time_min ?? item.transit_time_min ?? 0);
+        if (transitMinutes > 0) {
+          const label = item.subway_time_min != null ? "지하철" : item.bus_time_min != null ? "버스" : "대중교통";
+          chips.push(`<span class="reason-chip"><span class="reason-chip-icon">🚇</span><span>${escapeHtml(label)} ${escapeHtml(String(transitMinutes))}분</span></span>`);
+        }
+        const transferCount = routeTransferCount(item);
+        if (transferCount != null) chips.push(`<span class="reason-chip"><span class="reason-chip-icon">⇄</span><span>환승 ${escapeHtml(String(transferCount))}회</span></span>`);
+      }
+      if (item.route_type === "car") {
+        if (item.duration_min != null) chips.push(`<span class="reason-chip"><span class="reason-chip-icon">⏱</span><span>총 통근 ${escapeHtml(String(item.duration_min))}분</span></span>`);
+        if (item.distance_km != null) chips.push(`<span class="reason-chip"><span class="reason-chip-icon">🚗</span><span>주행 ${escapeHtml(String(item.distance_km))}km</span></span>`);
+        const timeBandTag = carTimeBandLabel(item.car_time_band);
+        if (timeBandTag) chips.push(`<span class="reason-chip"><span class="reason-chip-icon">⌂</span><span>${escapeHtml(timeBandTag)}</span></span>`);
+        const budgetTag = budgetBandLabel(item.budget_band);
+        if (budgetTag) chips.push(`<span class="reason-chip"><span class="reason-chip-icon">₩</span><span>${escapeHtml(budgetTag)}</span></span>`);
+      }
+      return chips.slice(0, 4).join("");
+    }
+
+    function buildLivingSummaryChips(item) {
+      if (!hasSelectedLivingCategories(item)) return "";
+      const chips = [];
+      (item.living_matches || []).slice(0, 3).forEach((match) => {
+        if (match.distance_m == null) return;
+        const walkMinutes = Math.max(1, Math.round(Number(match.distance_m) / 70));
+        chips.push(`<span class="reason-chip"><span class="reason-chip-icon">⌂</span><span>${escapeHtml(match.label)} 도보 약 ${walkMinutes}분(${escapeHtml(String(match.distance_m))}m)</span></span>`);
+      });
+      (item.living_reference_tags || []).slice(0, 2).forEach((ref) => {
+        chips.push(`<span class="reason-chip"><span class="reason-chip-icon">⌂</span><span>${escapeHtml(ref.label)} 참고</span></span>`);
+      });
+      return chips.join("");
+    }
+
+    function buildReasonDetailRows(item) {
+      const narrative = reasonNarrativeText(item);
+      const narrativeNormalized = normalizeReasonText(narrative);
+      const reasons = reasonSummaryLines(item).filter((reason) => normalizeReasonText(reason) !== narrativeNormalized);
+      if (!narrative && !reasons.length) return "";
+      return `
+        ${narrative ? `
+          <div class="reason-detail-item">
+            <span class="reason-detail-icon">✎</span>
+            <div class="reason-detail-text">${escapeHtml(narrative)}</div>
+          </div>
+        ` : ""}
+        ${reasons.map((reason) => {
+        const meta = reasonMetaForText(reason);
+        return `
+          <div class="reason-detail-item">
+            <span class="reason-detail-icon">${meta.icon}</span>
+            <div class="reason-detail-text">${escapeHtml(reason)}</div>
+          </div>
+        `;
+      }).join("")}
+      `;
+    }
+
+    function hasReasonDetails(item) {
+      return reasonSummaryLines(item).length > 0;
+    }
+
+    function clearRouteLines() {
+      routePolylines.forEach((line) => line.setMap(null));
+      routePolylines = [];
+    }
+
+    function clearLivingFacilityMarkers() {
+      livingFacilityMarkers.forEach((marker) => marker.setMap(null));
+      livingFacilityMarkers = [];
+    }
+
+    function displayRouteSegments(item) {
+      if (!item) return [];
+      if (item.route_type === "car") {
+        return item.display_path_segments || item.path_segments || [];
+      }
+      return item.display_path_segments || item.path_segments || [];
+    }
+
+    function displayRouteSteps(item) {
+      if (!item) return [];
+      if (item.route_type === "car") {
+        return item.display_steps || item.steps || [];
+      }
+      return item.display_steps || item.steps || [];
+    }
+
+    function livingFacilitiesForMap(item) {
+      return (item?.living_details || [])
+        .filter((detail) => Number.isFinite(Number(detail?.lat)) && Number.isFinite(Number(detail?.lng)))
+        .slice(0, 2);
+    }
+
+    function renderLivingFacilitiesOnMap(item) {
+      if (!map || !(window.kakao && kakao.maps)) return;
+      clearLivingFacilityMarkers();
+      livingFacilitiesForMap(item).forEach((detail) => {
+        const color = LIVING_MARKER_COLORS[detail.category] || "#64748b";
+        const marker = new kakao.maps.Marker({
+          map,
+          position: new kakao.maps.LatLng(Number(detail.lat), Number(detail.lng)),
+          image: buildLivingMarkerImage(color, detail.label),
+          title: detail.place_name ? `${detail.label}: ${detail.place_name}` : detail.label,
+        });
+        marker.setZIndex(3);
+        livingFacilityMarkers.push(marker);
+      });
+    }
+
+    function routeBounds(item) {
+      if (!(window.kakao && kakao.maps) || !item) return null;
+      const bounds = new kakao.maps.LatLngBounds();
+      let hasPoint = false;
+      if (appState.workplace) {
+        bounds.extend(new kakao.maps.LatLng(appState.workplace.lat, appState.workplace.lng));
+        hasPoint = true;
+      }
+      bounds.extend(new kakao.maps.LatLng(item.lat, item.lng));
+      hasPoint = true;
+      displayRouteSegments(item).forEach((segment) => {
+        (segment.points || []).forEach((point) => {
+          bounds.extend(new kakao.maps.LatLng(point.lat, point.lng));
+          hasPoint = true;
+        });
+      });
+      livingFacilitiesForMap(item).forEach((detail) => {
+        bounds.extend(new kakao.maps.LatLng(Number(detail.lat), Number(detail.lng)));
+        hasPoint = true;
+      });
+      return hasPoint ? bounds : null;
+    }
+
+    function drawRouteOnMap(item) {
+      if (!map || !(window.kakao && kakao.maps)) return;
+      clearRouteLines();
+      const segments = displayRouteSegments(item);
+      segments.forEach((segment) => {
+        const points = (segment.points || []).map((point) => new kakao.maps.LatLng(point.lat, point.lng));
+        if (points.length < 2) return;
+        const visual = routeVisualStyle(segment);
+        if ((segment.type || "") === "walk" || (segment.style || "") === "walk") {
+          const underlay = new kakao.maps.Polyline({
+            map,
+            path: points,
+            strokeWeight: 12,
+            strokeColor: visual.strokeColor,
+            strokeOpacity: 0.28,
+            strokeStyle: "solid",
+          });
+          routePolylines.push(underlay);
+        }
+        const polyline = new kakao.maps.Polyline({
+          map,
+          path: points,
+          strokeWeight: visual.strokeWeight,
+          strokeColor: visual.strokeColor,
+          strokeOpacity: visual.strokeOpacity,
+          strokeStyle: visual.strokeStyle,
+        });
+        routePolylines.push(polyline);
+      });
+
+      const bridgeSegments = [];
+      const firstSegment = segments.find((segment) => (segment.points || []).length >= 2);
+      const lastSegment = [...segments].reverse().find((segment) => (segment.points || []).length >= 2);
+      const listingPoint = { lat: item.lat, lng: item.lng };
+      const workplacePoint = appState.workplace ? { lat: appState.workplace.lat, lng: appState.workplace.lng } : null;
+
+      if (firstSegment) {
+        const firstPoint = firstSegment.points[0];
+        const distance = haversineMeters(listingPoint, firstPoint);
+        if (distance >= 6 && distance <= 180) {
+          bridgeSegments.push({
+            from: listingPoint,
+            to: firstPoint,
+            style: firstSegment.type === "walk" ? "walk" : "connector",
+          });
+        }
+      }
+
+      if (lastSegment && workplacePoint) {
+        const lastPoint = lastSegment.points[lastSegment.points.length - 1];
+        const distance = haversineMeters(lastPoint, workplacePoint);
+        if (distance >= 6 && distance <= 180) {
+          bridgeSegments.push({
+            from: lastPoint,
+            to: workplacePoint,
+            style: lastSegment.type === "walk" ? "walk" : "connector",
+          });
+        }
+      }
+
+      for (let index = 0; index < segments.length - 1; index += 1) {
+        const current = segments[index];
+        const next = segments[index + 1];
+        const currentPoints = current.points || [];
+        const nextPoints = next.points || [];
+        if (currentPoints.length < 2 || nextPoints.length < 2) continue;
+        const currentEnd = currentPoints[currentPoints.length - 1];
+        const nextStart = nextPoints[0];
+        const distance = haversineMeters(currentEnd, nextStart);
+        if (distance < 6 || distance > 180) continue;
+        bridgeSegments.push({
+          from: currentEnd,
+          to: nextStart,
+          style: current.type === "walk" || next.type === "walk" ? "walk" : "connector",
+        });
+      }
+
+      bridgeSegments.forEach((bridge) => {
+        const isWalkBridge = bridge.style === "walk";
+        const polyline = new kakao.maps.Polyline({
+          map,
+          path: [
+            new kakao.maps.LatLng(bridge.from.lat, bridge.from.lng),
+            new kakao.maps.LatLng(bridge.to.lat, bridge.to.lng),
+          ],
+          strokeWeight: isWalkBridge ? 6 : 3,
+          strokeColor: isWalkBridge ? "#5b7cfa" : "#94a3b8",
+          strokeOpacity: 0.98,
+          strokeStyle: isWalkBridge ? "dot" : "shortdot",
+        });
+        routePolylines.push(polyline);
+      });
+
+      if (item.route_type === "car" && appState.workplace) {
+        const connectorSegments = [];
+        const routeStart = firstSegment ? firstSegment.points[0] : null;
+        const routeEnd = lastSegment ? lastSegment.points[lastSegment.points.length - 1] : null;
+
+        if (routeStart && haversineMeters(listingPoint, routeStart) >= 20) {
+          connectorSegments.push([listingPoint, routeStart]);
+        }
+        if (routeEnd && workplacePoint && haversineMeters(routeEnd, workplacePoint) >= 20) {
+          connectorSegments.push([routeEnd, workplacePoint]);
+        }
+
+        connectorSegments.forEach((connector) => {
+          const polyline = new kakao.maps.Polyline({
+            map,
+            path: connector.map((point) => new kakao.maps.LatLng(point.lat, point.lng)),
+            strokeWeight: 3,
+            strokeColor: "#94a3b8",
+            strokeOpacity: 0.95,
+            strokeStyle: "shortdot",
+          });
+          routePolylines.push(polyline);
+        });
+      }
+    }
+
+    function routeModeLabel(type) {
+      if (type === "walk") return "도보";
+      if (type === "bus") return "버스";
+      if (type === "subway") return "지하철";
+      if (type === "car") return "자동차";
+      return "이동";
+    }
+
+    function normalizeLineName(name) {
+      return String(name || "").trim().replaceAll(" ", "");
+    }
+
+    function subwayLineColor(name) {
+      const normalized = normalizeLineName(name);
+      const lineMap = {
+        "1호선": "#0d3692",
+        "2호선": "#33a23d",
+        "3호선": "#fe5b10",
+        "4호선": "#32a1c8",
+        "5호선": "#8b50a4",
+        "6호선": "#c55c1d",
+        "7호선": "#54640d",
+        "8호선": "#f14c82",
+        "9호선": "#aa9872",
+        "경의중앙선": "#77c4a3",
+        "공항철도": "#0090d2",
+        "경춘선": "#178c72",
+        "수인분당선": "#f5a200",
+        "신분당선": "#d4003b",
+        "우이신설선": "#b7c450",
+        "서해선": "#81a914",
+        "신림선": "#6789ca",
+        "김포골드라인": "#a17800",
+        "용인경전철": "#6fb245",
+        "의정부경전철": "#f08200",
+        "인천1호선": "#7ca8d5",
+        "인천2호선": "#ed8b00",
+      };
+      const matchedKey = Object.keys(lineMap).find((key) => normalized.includes(key));
+      return matchedKey ? lineMap[matchedKey] : "#ea580c";
+    }
+
+    function busLineColor(name) {
+      const normalized = normalizeLineName(name).toUpperCase();
+      if (!normalized) return "#15803d";
+      if (normalized.startsWith("M") || /^9\d{3,}$/.test(normalized)) return "#c62828";
+      if (/^N\d+/.test(normalized)) return "#1f2937";
+      if (/^(직행|광역|급행)/.test(normalized)) return "#c62828";
+      if (/^(공항|600\d)/.test(normalized)) return "#00acc1";
+      if (/^(순환|01|02|03|04|05|06|07|08)/.test(normalized)) return "#f59e0b";
+      if (/^\d{3}$/.test(normalized) || /^[67]\d{2,3}$/.test(normalized)) return "#2563eb";
+      if (/^[1234]\d{3}$/.test(normalized) || /^[1-4]\d{2,3}$/.test(normalized)) return "#16a34a";
+      return "#15803d";
+    }
+
+    function routeColorForStep(step) {
+      if (!step) return "#2b6ef3";
+      if (step.color) return step.color;
+      if (step.type === "walk") return "#9ca3af";
+      if (step.type === "subway") return subwayLineColor(step.name);
+      if (step.type === "bus") return busLineColor(step.name);
+      if (step.type === "car") return "#1f2937";
+      return "#2b6ef3";
+    }
+
+    function routeVisualStyle(stepOrSegment) {
+      const strokeColor = routeColorForStep(stepOrSegment);
+      if ((stepOrSegment?.type || "") === "walk" || (stepOrSegment?.style || "") === "walk") {
+        return {
+          strokeColor,
+          strokeWeight: 7,
+          strokeOpacity: 1,
+          strokeStyle: "dot",
+        };
+      }
+      return {
+        strokeColor,
+        strokeWeight: 5,
+        strokeOpacity: 0.94,
+        strokeStyle: "solid",
+      };
+    }
+
+    function routeDotStyle(step) {
+      const color = routeColorForStep(step);
+      const shadow = hexToRgba(color, 0.18);
+      return `background:${color}; box-shadow:0 0 0 2px ${shadow};`;
+    }
+
+    function routeBadgeStyle(step) {
+      const color = routeColorForStep(step);
+      return `background:${color};`;
+    }
+
+    function routeChipStyle(step) {
+      const color = routeColorForStep(step);
+      return `border-color:${hexToRgba(color, 0.18)}; color:${color}; background:${hexToRgba(color, 0.08)};`;
+    }
+
+    function routeStepContainerStyle(step) {
+      const color = routeColorForStep(step);
+      return `--route-step-color-strong:${hexToRgba(color, 0.28)}; --route-step-color-weak:${hexToRgba(color, 0.06)};`;
+    }
+
+    function hexToRgba(hex, alpha = 1) {
+      const normalized = String(hex || "").replace("#", "");
+      if (normalized.length !== 6) return `rgba(43,110,243,${alpha})`;
+      const r = parseInt(normalized.slice(0, 2), 16);
+      const g = parseInt(normalized.slice(2, 4), 16);
+      const b = parseInt(normalized.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function formatWalkInfo(minutes, meters) {
+      if (minutes != null && meters != null) return `도보 ${minutes}분(${meters}m)`;
+      if (minutes != null) return `도보 ${minutes}분`;
+      if (meters != null) return `도보 ${meters}m`;
+      return "";
+    }
+
+    function stepBadgeText(step) {
+      if (!step) return "";
+      if (step.type === "walk") return step.distance_m != null ? `${step.distance_m}m` : "";
+      if (step.type === "bus") return step.name || "버스";
+      if (step.type === "subway") return step.name || "지하철";
+      if (step.type === "car") return step.distance_m != null ? `${step.distance_m}m` : "";
+      return "";
+    }
+
+    function stepHeadline(step) {
+      if (!step) return "";
+      const duration = step.duration_min != null ? `${step.duration_min}분` : "";
+      return `${routeModeLabel(step.type)} ${duration}`.trim();
+    }
+
+    function stepDescription(step) {
+      if (!step) return "";
+      if (step.type === "walk") return `${step.distance_m || 0}m 이동`;
+      if (step.start && step.end) return `${step.start} → ${step.end}`;
+      if (step.distance_m != null) return `${step.distance_m}m 이동`;
+      return "";
+    }
+
+    function buildRouteStepText(step) {
+      if (!step) return "";
+      if (step.type === "walk") return `${step.distance_m || 0}m 이동`;
+      if (step.type === "bus") return `${step.start || "-"} → ${step.end || "-"}`;
+      if (step.type === "subway") return `${step.start || "-"} → ${step.end || "-"}`;
+      if (step.type === "car") return `${step.name || "도로 이동"} · ${step.distance_m || 0}m`;
+      return "";
+    }
+
+    function haversineMeters(start, end) {
+      if (!start || !end) return 0;
+      const toRadians = (degree) => degree * Math.PI / 180;
+      const earthRadius = 6371000;
+      const dLat = toRadians((end.lat || 0) - (start.lat || 0));
+      const dLng = toRadians((end.lng || 0) - (start.lng || 0));
+      const lat1 = toRadians(start.lat || 0);
+      const lat2 = toRadians(end.lat || 0);
+      const a = Math.sin(dLat / 2) ** 2
+        + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+      return 2 * earthRadius * Math.asin(Math.sqrt(a));
+    }
+
+    function buildRouteMetricChips(item) {
+      const chips = [];
+      if (item.duration_min != null) chips.push(`<span class="route-metric"><strong>${item.duration_min}분</strong>총 소요</span>`);
+      if (item.route_type === "car" && item.distance_km != null) chips.push(`<span class="route-metric"><strong>${item.distance_km}km</strong>주행 거리</span>`);
+      if ((item.total_walk_m || item.walk_distance_m) && item.route_type !== "car") chips.push(`<span class="route-metric"><strong>${formatWalkInfo(item.walk_time_min, item.walk_distance_m || item.total_walk_m)}</strong></span>`);
+      const transferCount = routeTransferCount(item);
+      if (item.route_type === "transit") chips.push(`<span class="route-metric"><strong>${transferCount}회</strong>환승</span>`);
+      return chips.join("");
+    }
+
+    function buildRouteSummaryTitle(item) {
+      if (item.route_type === "walk") return "걸어서 바로 이동 가능한 경로";
+      if (item.route_type === "car") return "자동차 경로";
+      return "구간별 이동 경로";
+    }
+
+    function buildRouteStepMeta(step) {
+      const chips = [];
+      const badge = stepBadgeText(step);
+      if (badge) chips.push(`<span class="route-step-chip" style="${routeChipStyle(step)}">${badge}</span>`);
+      return chips.join("");
+    }
+
+    function buildRouteStepsHtml(steps) {
+      if (!steps.length) {
+        return `<div class="route-step"><div class="route-step-marker"><span class="route-step-dot"></span></div><div class="route-step-content"><div class="route-step-top"><strong>상세 경로 준비 중</strong></div><div class="route-step-desc">현재는 요약 경로만 제공하고 있습니다.</div></div></div>`;
+      }
+      return steps.map((step) => `
+        <div class="route-step" style="${routeStepContainerStyle(step)}">
+          <div class="route-step-marker">
+            <span class="route-step-dot ${step.type || "move"}" style="${routeDotStyle(step)}"></span>
+          </div>
+          <div class="route-step-content">
+            <div class="route-step-top">
+              <strong>${stepHeadline(step)}</strong>
+              ${buildRouteStepMeta(step)}
+            </div>
+            <div class="route-step-desc">${stepDescription(step) || buildRouteStepText(step)}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function buildSecondaryRoutePanel(item) {
+      if ((item.route_type === "transit" || item.route_type === "walk") && item.secondary_car?.duration_min != null) {
+        return `
+          <div class="route-secondary-panel">
+            <div class="route-secondary-label">비교용 자동차 경로</div>
+            <div class="route-secondary-text">${item.secondary_car.distance_km != null ? `자동차 ${item.secondary_car.duration_min}분 · ${item.secondary_car.distance_km}km` : `자동차 ${item.secondary_car.duration_min}분`}</div>
+          </div>
+        `;
+      }
+      if (item.route_type === "car" && item.secondary_transit?.duration_min != null) {
+        const secondary = item.secondary_transit;
+        const transferCount = secondary.transfer_count ?? ((secondary.bus_transit_count || 0) + (secondary.subway_transit_count || 0));
+        return `
+          <div class="route-secondary-panel">
+            <div class="route-secondary-label">비교용 대중교통 경로</div>
+            <div class="route-secondary-text">대중교통 ${secondary.duration_min}분 · 환승 ${transferCount}회 · ${formatWalkInfo(secondary.walk_time_min, secondary.total_walk_m || 0)}</div>
+          </div>
+        `;
+      }
+      return "";
+    }
+
+    function buildRouteDetailsHtml(item) {
+      const steps = displayRouteSteps(item);
+      const routeError = item.display_route_error || "";
+      const modeBadgeStyle = item.route_type === "transit" && steps.length
+        ? ` style="${routeBadgeStyle(steps.find((step) => step.type !== "walk") || { type: "subway", name: "2호선" })}"`
+        : "";
+      return `
+        <div class="route-details">
+          <div class="route-details-head">
+            <strong>상세 경로</strong>
+            <span class="route-hint">${routeText(item)}</span>
+          </div>
+          ${routeError ? `<div class="empty-state"><strong>${escapeHtml(routeError)}</strong><div class="meta-line">추천 계산은 그대로 유지하고, 지도 표시용 Kakao 경로가 추천 경로와 일치하지 않아 지도를 생략했습니다.</div></div>` : ""}
+          <div class="route-summary-card">
+            <div class="route-summary-top">
+              <div>
+                <div class="route-summary-title">${buildRouteSummaryTitle(item)}</div>
+              </div>
+              <span class="route-mode-badge ${item.route_type || "move"}"${modeBadgeStyle}>${routeModeLabel(item.route_type)}</span>
+            </div>
+            <div class="route-summary-metrics">${buildRouteMetricChips(item)}</div>
+          </div>
+          <div class="route-steps">${buildRouteStepsHtml(steps)}</div>
+          ${routeError && DEBUG_MODE ? `<div class="meta-line">${escapeHtml(routeError)}</div>` : ""}
+          ${buildSecondaryRoutePanel(item)}
+        </div>
+      `;
+    }
+
+    function buildEmptyStateHtml(meta, suggestions) {
+      const candidateCount = Number(meta?.total_candidates || 0);
+      const checkedCount = Number(meta?.checked_candidates || candidateCount || 0);
+      const routeFailureCount = Number(meta?.route_failure_count || 0);
+      const overLimitCount = Number(meta?.over_limit_count || 0);
+      const walkableCount = Number(meta?.walkable_count || 0);
+      const relaxationMode = meta?.relaxation_mode || "none";
+      const failureReasons = meta?.failure_reasons || {};
+      const failureReasonLines = Object.entries(failureReasons).slice(0, 3).map(([reason, count]) => `<div class="meta-line">${reason} · ${count}건</div>`).join("");
+      const blocks = [];
+
+      if (relaxationMode === "route_failure") {
+        blocks.push(`
+          <div class="empty-state">
+            <strong>${meta?.message || "조건에 맞는 후보는 있었지만 대중교통 경로를 불러오지 못했습니다."}</strong>
+            <div class="meta-line">실제 경로 계산 대상으로 본 후보 ${checkedCount}개를 확인했습니다.</div>
+            ${walkableCount ? `<div class="meta-line">이 중 ${walkableCount}개는 직장/학교와 가까워 도보 이동으로 보는 것이 더 자연스러운 후보입니다.</div>` : ""}
+            ${failureReasonLines}
+          </div>
+        `);
+      } else if (relaxationMode === "commute_limit") {
+        blocks.push(`
+          <div class="empty-state">
+            <strong>예산 조건에 맞는 후보는 있었지만 통근시간 기준을 넘겼습니다.</strong>
+            <div class="meta-line">실제 경로 계산 대상으로 본 후보 ${checkedCount}개 중 ${overLimitCount}개가 통근시간 때문에 제외됐습니다.</div>
+          </div>
+        `);
+      } else {
+        blocks.push(`
+          <div class="empty-state">
+            <strong>${meta?.message || "조건에 맞는 매물이 없습니다."}</strong>
+            ${checkedCount ? `<div class="meta-line">실제 경로 계산 대상으로 본 후보 ${checkedCount}개를 확인했습니다.</div>` : ""}
+            ${(routeFailureCount || overLimitCount) ? `<div class="meta-line">경로 실패 ${routeFailureCount}건 · 통근시간 초과 ${overLimitCount}건</div>` : ""}
+            ${walkableCount ? `<div class="meta-line">이 중 ${walkableCount}개는 직장/학교와 가까워 도보 이동으로 처리된 후보입니다.</div>` : ""}
+            ${failureReasonLines}
+          </div>
+        `);
+      }
+
+      if (suggestions.length) {
+        blocks.push(`<div class="suggestions">${suggestions.map((item) => `
+          <div class="suggestion-item">
+            <div>${buildSuggestionText(item)}</div>
+            <button type="button" class="ghost-btn" data-relax-field="${item.field}" data-relax-value="${item.value}">이 조건으로 보기</button>
+          </div>
+        `).join("")}</div>`);
+      }
+
+      return blocks.join("");
+    }
+
+    function compactReasonText(text) {
+      const normalized = String(text || "").replace(/\s+/g, " ").trim();
+      if (!normalized) return "";
+      return normalized;
+    }
+
+    function buildResultsNoticeHtml(recommendations, meta, suggestions) {
+      const count = recommendations.length;
+      const carTimeNotice = appState.primaryMode === "car" && meta?.car_route_time_label
+        ? `
+        <div class="empty-state" style="margin-bottom:12px;">
+          <strong>자동차 통근시간 기준</strong>
+          <div class="meta-line">${escapeHtml(meta.car_route_time_label).replace(/ 기준$/, "")}</div>
+        </div>
+      `
+        : "";
+      if (count >= 5) return carTimeNotice;
+      const modeLabel = appState.primaryMode === "car" ? "자동차 통근시간" : "통근시간";
+      const reasonLine = `예산과 ${modeLabel} 조건을 모두 만족하는 후보만 보여드렸어요.`;
+      const relaxButton = suggestions.length
+        ? `<button type="button" class="ghost-btn" data-relax-field="${suggestions[0].field}" data-relax-value="${suggestions[0].value}">조건 완화하기</button>`
+        : "";
+      return carTimeNotice + `
+        <div class="empty-state" style="margin-bottom:12px;">
+          <strong>현재 조건을 만족하는 후보 ${count}개를 찾았어요.</strong>
+          <div class="meta-line">${reasonLine}</div>
+          ${suggestions.length ? `<div class="meta-line">조건을 조금 완화하면 더 많은 후보를 볼 수 있어요.</div>` : ""}
+          ${relaxButton}
+        </div>
+      `;
+    }
+
+    function fitMapToVisibleResults(items) {
+      if (!map || !(window.kakao && kakao.maps) || !items.length) return;
+      const bounds = new kakao.maps.LatLngBounds();
+      if (appState.workplace) {
+        bounds.extend(new kakao.maps.LatLng(appState.workplace.lat, appState.workplace.lng));
+      }
+      items.forEach((item) => bounds.extend(new kakao.maps.LatLng(item.lat, item.lng)));
+      map.setBounds(bounds, 60, 60, 60, 60);
+    }
+
+    function fitMapToWorkplaceAndItem(item) {
+      if (!map || !(window.kakao && kakao.maps) || !item) return;
+      const bounds = routeBounds(item);
+      if (!bounds) return;
+      map.setBounds(bounds, 140, 140, 140, 520);
+    }
+
+    function selectRecommendation(index, item, options = {}) {
+      appState.selectedRecommendationIndex = index;
+      if (map && options.center !== false) {
+        fitMapToWorkplaceAndItem(item);
+      }
+      if (DEBUG_MODE) {
+        const textSteps = displayRouteSteps(item);
+        const mapSegments = displayRouteSegments(item);
+        console.log("ROUTE_DISPLAY_DEBUG", {
+          selected_listing_key: item.listing_key || item.listing_id || item.address,
+          route_status: item.route_status,
+          route_provider: item.route_provider,
+          route_geometry_provider: item.route_geometry_provider,
+          route_display_version: item.route_display_version,
+          route_display_mode: item.route_display_mode,
+          summary_source: item.summary_source,
+          kakao_live_status: item.kakao_live_status,
+          kakao_cache_fallback_used: item.kakao_cache_fallback_used,
+          display_route_error: item.display_route_error,
+          route_match_score: item.route_match_score,
+          selected_match_score: item.selected_match_score,
+          kakao_top_n: item.kakao_top_n,
+          kakao_candidates: item.kakao_candidates,
+          selected_kakao_mode_signature: item.selected_kakao_mode_signature,
+          selected_kakao_duration_min: item.selected_kakao_duration_min,
+          selected_kakao_transfer_count: item.selected_kakao_transfer_count,
+          polyline_rendered: item.polyline_rendered,
+          segments_for_text: textSteps.map((step) => ({
+            index: textSteps.indexOf(step),
+            type: step.type,
+            name: step.name,
+            duration_min: step.duration_min,
+            distance_m: step.distance_m,
+            from: step.start,
+            to: step.end,
+          })),
+          segments_for_map: mapSegments.map((segment) => ({
+            index: mapSegments.indexOf(segment),
+            normalized_type: segment.type,
+            name: segment.name,
+            geometry_source: segment.geometry_source,
+            color: segment.color,
+            point_count: (segment.points || []).length,
+            start: (segment.points || [])[0] || null,
+            end: (segment.points || []).length ? segment.points[segment.points.length - 1] : null,
+          })),
+        });
+      }
+      drawRouteOnMap(item);
+      renderLivingFacilitiesOnMap(item);
+      listingMarkers.forEach((marker, markerIndex) => {
+        marker.setImage(
+          buildMarkerImage(
+            markerIndex === index ? "#ef4444" : "#2b6ef3",
+            "#ffffff",
+            markerIndex === index ? 44 : 38,
+            String((markerIndex + 1)),
+            markerIndex === index ? "rgba(239, 68, 68, 0.18)" : "rgba(43, 110, 243, 0.16)"
+          )
+        );
+        marker.setZIndex(markerIndex === index ? 10 : 1);
+      });
+      document.querySelectorAll('.result-card[data-rec-index]').forEach((card) => {
+        card.classList.toggle('selected', Number(card.dataset.recIndex) === index);
+      });
+
+      const selectedCard = document.querySelector(`.result-card[data-rec-index="${index}"]`);
+      if (selectedCard) {
+        selectedCard.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+        selectedCard.classList.remove("attention");
+        void selectedCard.offsetWidth;
+        selectedCard.classList.add("attention");
+      }
+    }
+
+    function buildSuggestionText(item) {
+      if (item.label) {
+        return item.label;
+      }
+      if (item.field === "max_commute_minutes") {
+        return `통근시간을 ${appState.primaryMode === "car" ? appState.commuteLimits.car : appState.commuteLimits.transit}분에서 ${item.value}분으로 늘리면 ${item.count}개가 있습니다.`;
+      }
+      if (item.field === "deposit_max") {
+        return `보증금을 ${appState.depositMax}만원에서 ${item.value}만원으로 늘리면 ${item.count}개가 있습니다.`;
+      }
+      if (item.field === "rent_max") {
+        return `월세 상한을 ${appState.rentMax}만원에서 ${item.value}만원으로 늘리면 ${item.count}개가 있습니다.`;
+      }
+      return `조건을 완화하면 ${item.count}개가 있습니다.`;
+    }
+
+    function updateSummary() {
+      if (!appState.workplace) {
+        elements.summary.classList.add("hidden");
+        elements.summary.innerHTML = "";
+        elements.recommendActions.classList.add("hidden");
+        return;
+      }
+
+      const chips = [
+        `<span class="summary-chip"><strong>위치</strong>${appState.workplace.name}</span>`,
+        `<span class="summary-chip"><strong>보증금</strong>${appState.depositMax}만원</span>`,
+      ];
+
+      if (appState.dealType !== "jeonse") {
+        chips.push(`<span class="summary-chip"><strong>월세</strong>${appState.rentMax}만원</span>`);
+      }
+
+      if (appState.selectedModes.length) {
+        chips.push(`<span class="summary-chip"><strong>이동 기준</strong>${appState.selectedModes.map(selectedLabel).join(", ")}</span>`);
+      }
+      if (appState.selectedModes.includes("transit")) {
+        chips.push(`<span class="summary-chip"><strong>대중교통</strong>${appState.commuteLimits.transit}분</span>`);
+      }
+      if (appState.primaryMode === "car") {
+        chips.push(`<span class="summary-chip"><strong>자동차</strong>${appState.commuteLimits.car}분</span>`);
+        chips.push(`<span class="summary-chip"><strong>자동차 시간대</strong>${carTimeProfileLabel(appState.carTimeProfile)}</span>`);
+      }
+      if (appState.selectedModes.length === 2 && appState.primaryMode) {
+        chips.push(`<span class="summary-chip"><strong>주 기준</strong>${selectedLabel(appState.primaryMode)}</span>`);
+      }
+
+      elements.summary.innerHTML = chips.join("");
+      elements.summary.classList.remove("hidden");
+      elements.recommendActions.classList.remove("hidden");
+    }
+
+    function renderSelectedWorkplace() {
+      if (!appState.workplace) {
+        elements.selectedWorkplace.classList.add("hidden");
+        elements.selectedWorkplace.innerHTML = "";
+        return;
+      }
+      elements.selectedWorkplace.innerHTML = `
+        <div>
+          <div class="place-name">${appState.workplace.name}</div>
+          <div class="place-address">${appState.workplace.address}</div>
+        </div>
+        <button type="button" class="mini-clear" id="clear-workplace-btn">다시 선택</button>
+      `;
+      elements.selectedWorkplace.classList.remove("hidden");
+      document.getElementById("clear-workplace-btn").addEventListener("click", clearWorkplaceSelection);
+    }
+
+    function clearSearchResults() {
+      elements.searchResults.innerHTML = "";
+      elements.searchResults.classList.add("hidden");
+    }
+
+    function renderDealSelection() {
+      const selected = appState.dealType;
+      const hasSelection = Boolean(selected);
+      elements.dealGate.classList.toggle("hidden", hasSelection);
+      elements.appContent.classList.toggle("hidden", !hasSelection);
+      elements.filterHeadTitle.classList.toggle("hidden", hasSelection);
+      elements.filterTabs.classList.toggle("hidden", !hasSelection);
+      renderTabs();
+    }
+
+    function renderTabs() {
+      document.querySelectorAll(".filter-tab").forEach((button) => {
+        const isRecommendTab = button.dataset.deal === "recommend";
+        const isActive = isRecommendTab
+          ? appState.leftTab === "recommend"
+          : appState.leftTab === "filters" && button.dataset.deal === appState.dealType;
+        button.classList.toggle("active", isActive);
+      });
+      elements.recommendTab.classList.toggle("hidden", !appState.hasRecommendations);
+      elements.filtersPanel.classList.toggle("active", appState.leftTab === "filters");
+      elements.recommendPanel.classList.toggle("active", appState.leftTab === "recommend");
+    }
+
+    function switchLeftTab(tab) {
+      if (tab === "recommend" && !appState.hasRecommendations) return;
+      appState.leftTab = tab;
+      renderTabs();
+    }
+
+    function openAiPanel() {
+      switchLeftTab("filters");
+      scheduleParsedQueryPreview();
+      const inlineCard = document.getElementById("ai-inline-card");
+      if (inlineCard) inlineCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (elements.queryInput) elements.queryInput.focus();
+      renderAiFlow();
+    }
+
+    function getAiUserText() {
+      return (elements.queryInput?.value || "").trim();
+    }
+
+    function defaultCarTimeForTripType(tripType) {
+      return tripType === "commute_from_work" ? "18:00" : "08:00";
+    }
+
+    function normalizeCarTimeDraft(value) {
+      const digits = String(value || "").replace(/\D/g, "").slice(0, 4);
+      if (!digits) return "";
+      if (digits.length <= 2) return digits;
+      return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+    }
+
+    function normalizeCarTimeValue(value, fallback) {
+      const raw = String(value || "").trim();
+      const match = raw.match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return fallback;
+      const hour = Number(match[1]);
+      const minute = Number(match[2]);
+      if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return fallback;
+      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+
+    function normalizedCarTimeProfileState(profile) {
+      const source = profile || {};
+      const tripType = source.trip_type === "commute_from_work" ? "commute_from_work" : "commute_to_work";
+      const routeDirection = tripType === "commute_from_work" ? "work_to_home" : "home_to_work";
+      const fallbackTime = defaultCarTimeForTripType(tripType);
+      const selectedTime = normalizeCarTimeValue(source.time || source.selected_car_time, fallbackTime);
+      return {
+        enabled: Boolean(source.enabled),
+        trip_type: tripType,
+        route_direction: routeDirection,
+        time_basis: "departure",
+        time: selectedTime,
+        selected_car_time: selectedTime,
+        prediction_type: "departure",
+        initialized: Boolean(source.initialized),
+        user_modified_time: Boolean(source.user_modified_time),
+        evening_default_applied: Boolean(source.evening_default_applied),
+      };
+    }
+
+    function ensureCarTimeProfileReady() {
+      const current = normalizedCarTimeProfileState(appState.carTimeProfile);
+      if (current.initialized) {
+        appState.carTimeProfile = { ...current, enabled: true };
+        return;
+      }
+      appState.carTimeProfile = {
+        ...current,
+        enabled: true,
+        initialized: true,
+        trip_type: "commute_to_work",
+        route_direction: "home_to_work",
+        time: "08:00",
+        selected_car_time: "08:00",
+      };
+    }
+
+    function updateCarTripType(tripType) {
+      const current = normalizedCarTimeProfileState(appState.carTimeProfile);
+      const normalizedTripType = tripType === "commute_from_work" ? "commute_from_work" : "commute_to_work";
+      const nextTime = (!current.user_modified_time && normalizedTripType === "commute_from_work" && !current.evening_default_applied)
+        ? "18:00"
+        : current.time;
+      appState.carTimeProfile = {
+        ...current,
+        enabled: true,
+        initialized: true,
+        trip_type: normalizedTripType,
+        route_direction: normalizedTripType === "commute_from_work" ? "work_to_home" : "home_to_work",
+        time: nextTime,
+        selected_car_time: nextTime,
+        evening_default_applied: current.evening_default_applied || normalizedTripType === "commute_from_work",
+      };
+    }
+
+    function commitCarTimeInput() {
+      if (!elements.carTimeInput) return;
+      const nextProfile = normalizedCarTimeProfileState({
+        ...appState.carTimeProfile,
+        enabled: true,
+        initialized: true,
+        time: elements.carTimeInput.value || defaultCarTimeForTripType(appState.carTimeProfile?.trip_type),
+        user_modified_time: true,
+      });
+      nextProfile.selected_car_time = nextProfile.time;
+      appState.carTimeProfile = nextProfile;
+      elements.carTimeInput.value = nextProfile.time;
+      if (elements.carTimeNative) {
+        elements.carTimeNative.value = nextProfile.time;
+      }
+      renderTransport();
+      updateSummary();
+      scheduleParsedQueryPreview();
+    }
+
+    function openCarTimePicker() {
+      if (!elements.carTimeNative) return;
+      elements.carTimeNative.value = normalizeCarTimeValue(
+        elements.carTimeInput?.value || appState.carTimeProfile?.time,
+        defaultCarTimeForTripType(appState.carTimeProfile?.trip_type),
+      );
+      if (typeof elements.carTimeNative.showPicker === "function") {
+        elements.carTimeNative.showPicker();
+      } else {
+        elements.carTimeNative.focus();
+        elements.carTimeNative.click();
+      }
+    }
+
+    function carTimeProfileLabel(profile) {
+      const normalized = normalizedCarTimeProfileState(profile);
+      return `${normalized.trip_type === "commute_from_work" ? "퇴근" : "출근"} 기준 ${normalized.time}`;
+    }
+
+    function getCarTimeProfile() {
+      if (appState.primaryMode !== "car") return null;
+      const normalized = normalizedCarTimeProfileState(appState.carTimeProfile);
+      if (!normalized.enabled) return null;
+      return normalized;
+    }
+
+    function getVisibleSummaryConditions(parsed) {
+
+      const items = Array.isArray(parsed?.summary_conditions) ? parsed.summary_conditions : [];
+      return items.filter((item) => {
+        if (!item || typeof item !== "object") return false;
+        return item.display_in_ai_summary === true && item.source === "user_natural_language";
+      });
+    }
+
+    function buildParsedConditionSummary(parsed) {
+      if (!parsed || typeof parsed !== "object") return "";
+      return getVisibleSummaryConditions(parsed).map((condition) => condition.label || String(condition)).join(" · ");
+    }
+
+    function syncAiParsedStateFromFlow() {
+      const referenceText = (elements.queryInput?.value || "").trim();
+      appState.aiParsedState = {
+        ...appState.aiParsedState,
+        transport_mode: appState.primaryMode,
+        reference_preferences: referenceText ? [referenceText] : [],
+        summary_conditions: [],
+        final_applied_conditions: [],
+        needs_clarification: [],
+        parse_message: "",
+        parse_confidence: null,
+      };
+    }
+
+    function isAiParsedResultReady() {
+      return Boolean(
+        buildParsedConditionSummary(appState.aiParsedState)
+        || appState.aiParsedState.parse_message
+        || (appState.aiParsedState.needs_clarification || []).length
+      );
+    }
+
+    function setAiParseStatus(message = "", kind = "") {
+      if (!elements.parseStatus) return;
+      window.clearTimeout(aiParseStatusTimer);
+      if (!message) {
+        elements.parseStatus.className = "ai-parse-status hidden";
+        elements.parseStatus.textContent = "";
+        return;
+      }
+      elements.parseStatus.textContent = message;
+      elements.parseStatus.className = `ai-parse-status ${kind || ""}`.trim();
+      if (kind === "success") {
+        aiParseStatusTimer = window.setTimeout(() => {
+          if (elements.parseStatus.textContent === message) {
+            elements.parseStatus.className = "ai-parse-status hidden";
+            elements.parseStatus.textContent = "";
+          }
+        }, 2500);
+      }
+    }
+
+    function setParseButtonState() {
+      if (!elements.parseAiButton) return;
+      elements.parseAiButton.disabled = aiParseInFlight;
+      if (aiParseInFlight) {
+        elements.parseAiButton.textContent = "해석 중...";
+        return;
+      }
+      elements.parseAiButton.textContent = "AI가 조건 해석하기";
+    }
+
+    let parsePreviewTimer = null;
+    async function refreshParsedQueryPreview() {
+      if (aiParseInFlight) return;
+      const previewText = buildQueryText(true);
+      if (!previewText.trim()) return;
+      try {
+        const response = await fetch(`/api/parse-query?q=${encodeURIComponent(previewText)}`);
+        const payload = await response.json();
+        if (!response.ok || !payload || typeof payload !== "object") return;
+        appState.aiParsedState = {
+          ...appState.aiParsedState,
+          ...(payload.parsed || {}),
+          parsed_query_text: previewText,
+          needs_clarification: payload.parsed?.needs_clarification || [],
+          parse_message: payload.message || "",
+          parse_confidence: payload.parsed?.confidence ?? null,
+        };
+        renderAiFlow();
+      } catch (error) {
+        // Preview is optional; server-side parsing still happens on recommendation requests.
+      }
+    }
+
+    async function runAiParse() {
+      if (aiParseInFlight) return;
+      const previewText = buildQueryText(true).trim();
+      if (!previewText) {
+        setAiParseStatus("먼저 자연어 조건을 입력해 주세요.", "error");
+        setParseButtonState();
+        return;
+      }
+
+      aiParseInFlight = true;
+      setAiParseStatus("조건을 해석하는 중입니다...", "");
+      setParseButtonState();
+      window.clearTimeout(parsePreviewTimer);
+
+      try {
+        const response = await fetch(`/api/parse-query?q=${encodeURIComponent(previewText)}`);
+        const payload = await response.json();
+        if (!response.ok || !payload || typeof payload !== "object") {
+          throw new Error(payload?.message || "parse failed");
+        }
+        appState.aiParsedState = {
+          ...appState.aiParsedState,
+          ...(payload.parsed || {} ),
+          parsed_query_text: previewText,
+          needs_clarification: payload.parsed?.needs_clarification || [],
+          parse_message: payload.message || "",
+          parse_confidence: payload.parsed?.confidence ?? null,
+        };
+        setAiParseStatus("AI가 조건을 해석했습니다.", "success");
+        renderAiFlow();
+      } catch (error) {
+        const message = error?.message && error.message !== "parse failed"
+          ? `조건 해석에 실패했어요. 다시 시도해주세요. ${error.message}`
+          : "조건 해석에 실패했어요. 다시 시도해주세요.";
+        setAiParseStatus(message, "error");
+        renderAiFlow();
+      } finally {
+        aiParseInFlight = false;
+        setParseButtonState();
+      }
+    }
+
+    function scheduleParsedQueryPreview() {
+      window.clearTimeout(parsePreviewTimer);
+      parsePreviewTimer = window.setTimeout(refreshParsedQueryPreview, 250);
+    }
+
+    function renderAiFlow() {
+      if (!elements.parsedConditionBox || !elements.engineConditionDetails || !elements.engineConditionJson) return;
+      if (!appState.workplace || !appState.primaryMode) {
+        elements.parsedConditionBox.classList.add("hidden");
+        elements.parsedConditionBox.innerHTML = "";
+        elements.engineConditionDetails.classList.add("hidden");
+        elements.engineConditionJson.textContent = "";
+        setAiParseStatus("");
+        setParseButtonState();
+        return;
+      }
+
+      const parsedSummary = buildParsedConditionSummary(appState.aiParsedState);
+      const hasParsedResult = isAiParsedResultReady();
+      elements.parsedConditionBox.classList.toggle("hidden", !hasParsedResult);
+      if (hasParsedResult) {
+        const lines = [];
+        if (parsedSummary) lines.push(`<div class="parsed-condition-line">${escapeHtml(parsedSummary)}</div>`);
+        if (appState.aiParsedState.parse_confidence != null) {
+          lines.push(`<div class="parsed-condition-line">해석 신뢰도 ${Math.round(Number(appState.aiParsedState.parse_confidence) * 100)}%</div>`);
+        }
+        if (appState.aiParsedState.parse_message) {
+          lines.push(`<div class="parsed-condition-line">${escapeHtml(appState.aiParsedState.parse_message)}</div>`);
+        }
+        if (appState.aiParsedState.needs_clarification?.length) {
+          lines.push(`<div class="parsed-condition-line">추가 질문 필요: ${escapeHtml(appState.aiParsedState.needs_clarification.join(", "))}</div>`);
+        }
+        elements.parsedConditionBox.innerHTML = `
+          <div class="parsed-condition-title">AI가 이렇게 이해했어요</div>
+          ${lines.join("")}
+        `;
+      } else {
+        elements.parsedConditionBox.innerHTML = "";
+      }
+
+      const parsedPayload = {
+        geo_constraints: appState.aiParsedState.geo_constraints || {},
+        soft_preferences: appState.aiParsedState.soft_preferences || {},
+        tradeoff_policy: appState.aiParsedState.tradeoff_policy || {},
+        must_have: appState.aiParsedState.must_have || [],
+        nice_to_have: appState.aiParsedState.nice_to_have || [],
+        needs_clarification: appState.aiParsedState.needs_clarification || [],
+        summary_conditions: appState.aiParsedState.summary_conditions || [],
+        final_applied_conditions: appState.aiParsedState.final_applied_conditions || [],
+      };
+      elements.engineConditionJson.textContent = JSON.stringify(parsedPayload, null, 2);
+      elements.engineConditionDetails.classList.toggle("hidden", !(DEBUG_MODE && hasParsedResult));
+      setParseButtonState();
+    }
+
+    function selectDealType(type) {
+      appState.dealType = type;
+      appState.leftTab = "filters";
+      renderDealSelection();
+      renderBudget();
+      updateSummary();
+    }
+
+    function clearWorkplaceSelection() {
+      appState.workplace = null;
+      appState.selectedModes = [];
+      appState.primaryMode = null;
+      appState.commuteLimits = { transit: DEFAULTS.transitCommute, car: DEFAULTS.carCommute };
+      appState.carTimeProfile = {
+        enabled: false,
+        trip_type: "commute_to_work",
+        route_direction: "home_to_work",
+        time_basis: "departure",
+        time: "08:00",
+        selected_car_time: "08:00",
+        prediction_type: "departure",
+        initialized: false,
+        user_modified_time: false,
+        evening_default_applied: false,
+      };
+      appState.depositMax = DEFAULTS.deposit;
+      appState.rentMax = DEFAULTS.rent;
+      appState.queryText = "";
+      appState.aiFlow = {
+        referenceText: "",
+      };
+      appState.aiParsedState = {
+        transport_mode: null,
+        transport: {},
+        hard_constraints: {},
+        soft_preferences: {},
+        route_preferences: {},
+        geo_constraints: {},
+        tradeoff_policy: {},
+        living_preferences: {},
+        unsupported_preferences: [],
+        priority_focus: "none",
+        reference_preferences: [],
+        must_have: [],
+        nice_to_have: [],
+        parsed_query_text: "",
+        parse_confidence: null,
+        needs_clarification: [],
+        summary_conditions: [],
+        final_applied_conditions: [],
+      };
+      appState.hasRecommendations = false;
+      appState.leftTab = "filters";
+      appState.aiPanelEnabled = false;
+      window.clearTimeout(parsePreviewTimer);
+      elements.workplaceSearch.value = "";
+      elements.queryInput.value = "";
+      renderSelectedWorkplace();
+      renderAiFlow();
+      clearSearchResults();
+      renderTransport();
+      renderBudget();
+      updateSummary();
+      resetResults();
+      clearMapListings();
+      if (workplaceMarker) {
+        workplaceMarker.setMap(null);
+        workplaceMarker = null;
+      }
+      if (map) map.setLevel(8);
+      elements.mapEmpty.classList.remove("hidden");
+      elements.aiPanel.classList.add("hidden");
+      elements.aiPanel.classList.add("collapsed");
+      elements.aiReopenButton.classList.add("hidden");
+    }
+
+    function renderTransport() {
+      const visible = Boolean(appState.workplace);
+      elements.transportCard.classList.toggle("hidden", !visible);
+      elements.budgetCard.classList.toggle("hidden", !visible);
+      if (elements.aiInlineCard) {
+        elements.aiInlineCard.classList.toggle("hidden", !visible);
+      }
+      if (!visible) {
+        renderAiFlow();
+        return;
+      }
+      if (appState.primaryMode === "car") {
+        ensureCarTimeProfileReady();
+      }
+
+      document.querySelectorAll(".transport-chip").forEach((button) => {
+        button.classList.toggle("active", appState.selectedModes.includes(button.dataset.mode));
+      });
+
+      const fields = [];
+      if (appState.selectedModes.includes("transit")) {
+        fields.push(`
+          <div class="field-card">
+            <div class="field-label">대중교통</div>
+            <div class="number-stepper">
+              <button type="button" class="step-btn" data-step-target="transit-commute" data-step="-5">-</button>
+              <input class="number-input commute-input" data-commute-mode="transit" type="number" min="0" step="5" value="${appState.commuteLimits.transit}" placeholder="${DEFAULTS.transitCommute}">
+              <button type="button" class="step-btn" data-step-target="transit-commute" data-step="5">+</button>
+            </div>
+            <div class="unit">분</div>
+          </div>
+        `);
+      }
+      if (appState.selectedModes.includes("car")) {
+        fields.push(`
+          <div class="field-card">
+            <div class="field-label">자동차</div>
+            <div class="number-stepper">
+              <button type="button" class="step-btn" data-step-target="car-commute" data-step="-5">-</button>
+              <input class="number-input commute-input" data-commute-mode="car" type="number" min="0" step="5" value="${appState.commuteLimits.car}" placeholder="${DEFAULTS.carCommute}">
+              <button type="button" class="step-btn" data-step-target="car-commute" data-step="5">+</button>
+            </div>
+            <div class="unit">분</div>
+          </div>
+        `);
+      }
+
+      elements.commuteGrid.innerHTML = fields.join("");
+      elements.commuteWrap.classList.toggle("hidden", fields.length === 0);
+      elements.carTimeWrap.classList.toggle("hidden", appState.primaryMode !== "car");
+      elements.commuteGrid.classList.toggle("single-column", fields.length === 1);
+      elements.commuteGrid.classList.toggle("hidden", fields.length === 0);
+      elements.primaryWrap.classList.toggle("hidden", appState.selectedModes.length !== 2);
+      const normalizedCarProfile = normalizedCarTimeProfileState(appState.carTimeProfile);
+      if (elements.carTripSelect) {
+        elements.carTripSelect.value = normalizedCarProfile.trip_type;
+      }
+      if (elements.carTimeInput) {
+        elements.carTimeInput.value = normalizedCarProfile.time;
+      }
+      if (elements.carTimeNative) {
+        elements.carTimeNative.value = normalizedCarProfile.time;
+      }
+
+      document.querySelectorAll(".primary-choice").forEach((button) => {
+        button.classList.toggle("active", appState.primaryMode === button.dataset.primary);
+      });
+      bindDynamicInputs();
+      syncAiParsedStateFromFlow();
+      renderAiFlow();
+    }
+
+    function renderBudget() {
+      if (!appState.workplace) return;
+      const isJeonse = appState.dealType === "jeonse";
+      elements.rentField.classList.toggle("hidden", isJeonse);
+      elements.budgetGrid.classList.toggle("single-column", isJeonse);
+      elements.depositInput.value = appState.depositMax;
+      elements.rentInput.value = appState.rentMax;
+    }
+
+    function resetResults() {
+      elements.resultsBody.className = "empty-state";
+      elements.resultsBody.textContent = "직장/학교를 선택하고 조건을 설정한 뒤 추천 보기를 눌러주세요.";
+      elements.resultCount.textContent = "";
+      renderDebugSummary({});
+      renderTabs();
+    }
+
+    function clearMapListings() {
+      listingMarkers.forEach((marker) => marker.setMap(null));
+      listingMarkers = [];
+      clearRouteLines();
+      clearLivingFacilityMarkers();
+    }
+
+    function ensurePrimaryMode() {
+      if (appState.selectedModes.length === 1) {
+        appState.primaryMode = appState.selectedModes[0];
+      } else if (appState.selectedModes.length === 2) {
+        if (!appState.selectedModes.includes(appState.primaryMode)) appState.primaryMode = "transit";
+      } else {
+        appState.primaryMode = null;
+      }
+    }
+
+    function toggleMode(mode) {
+      if (!appState.workplace) return;
+      if (appState.selectedModes.includes(mode)) {
+        appState.selectedModes = appState.selectedModes.filter((item) => item !== mode);
+      } else {
+        appState.selectedModes = [...appState.selectedModes, mode];
+      }
+      ensurePrimaryMode();
+      renderTransport();
+      updateSummary();
+      scheduleParsedQueryPreview();
+    }
+
+    function selectPrimaryMode(mode) {
+      appState.primaryMode = mode;
+      if (mode === "car") {
+        ensureCarTimeProfileReady();
+      }
+      renderTransport();
+      updateSummary();
+      scheduleParsedQueryPreview();
+    }
+
+    function bindDynamicInputs() {
+      document.querySelectorAll(".commute-input").forEach((input) => {
+        input.addEventListener("input", () => {
+          const mode = input.dataset.commuteMode;
+          const fallback = mode === "car" ? DEFAULTS.carCommute : DEFAULTS.transitCommute;
+          appState.commuteLimits[mode] = normalizeValue(input.value, 5, fallback);
+          updateSummary();
+          scheduleParsedQueryPreview();
+        });
+        input.addEventListener("blur", () => {
+          const mode = input.dataset.commuteMode;
+          const fallback = mode === "car" ? DEFAULTS.carCommute : DEFAULTS.transitCommute;
+          appState.commuteLimits[mode] = normalizeValue(input.value, 5, fallback);
+          input.value = appState.commuteLimits[mode];
+          updateSummary();
+          scheduleParsedQueryPreview();
+        });
+      });
+      document.querySelectorAll('[data-step-target="transit-commute"], [data-step-target="car-commute"]').forEach((button) => {
+        button.onclick = () => {
+          const target = button.dataset.stepTarget;
+          const step = Number(button.dataset.step);
+          if (target === "transit-commute") {
+            appState.commuteLimits.transit = Math.max(0, normalizeValue(appState.commuteLimits.transit + step, 5, DEFAULTS.transitCommute));
+          } else if (target === "car-commute") {
+            appState.commuteLimits.car = Math.max(0, normalizeValue(appState.commuteLimits.car + step, 5, DEFAULTS.carCommute));
+          }
+          renderTransport();
+          updateSummary();
+          scheduleParsedQueryPreview();
+        };
+      });
+      if (elements.carTripSelect) {
+        elements.carTripSelect.onchange = () => {
+          updateCarTripType(elements.carTripSelect.value);
+          renderTransport();
+          updateSummary();
+          scheduleParsedQueryPreview();
+        };
+      }
+      if (elements.carTimeInput) {
+        elements.carTimeInput.oninput = () => {
+          elements.carTimeInput.value = normalizeCarTimeDraft(elements.carTimeInput.value);
+        };
+        elements.carTimeInput.onchange = () => {
+          commitCarTimeInput();
+        };
+        elements.carTimeInput.onblur = () => {
+          commitCarTimeInput();
+        };
+      }
+      if (elements.carTimePickerButton) {
+        elements.carTimePickerButton.onclick = () => {
+          openCarTimePicker();
+        };
+      }
+      if (elements.carTimeNative) {
+        elements.carTimeNative.onchange = () => {
+          if (elements.carTimeInput) {
+            elements.carTimeInput.value = elements.carTimeNative.value || elements.carTimeInput.value;
+          }
+          commitCarTimeInput();
+        };
+      }
+    }
+
+    async function searchWorkplaces() {
+      const keyword = elements.workplaceSearch.value.trim();
+      if (!keyword) return;
+      const response = await fetch(`/api/workplace-search?q=${encodeURIComponent(keyword)}`);
+      const data = await response.json();
+      const results = data.results || [];
+      clearSearchResults();
+      if (!results.length) {
+        elements.searchResults.classList.remove("hidden");
+        elements.searchResults.innerHTML = `<div class="empty-state">검색 결과가 없습니다.</div>`;
+        return;
+      }
+      elements.searchResults.classList.remove("hidden");
+      elements.searchResults.innerHTML = results.map((item, index) => `
+        <button type="button" class="result-item" data-result-index="${index}">
+          <div class="place-name">${item.name}</div>
+          <div class="place-address">${item.address}</div>
+        </button>
+      `).join("");
+      elements.searchResults.querySelectorAll(".result-item").forEach((button) => {
+        button.addEventListener("click", () => selectWorkplace(results[Number(button.dataset.resultIndex)]));
+      });
+    }
+
+    function selectWorkplace(item) {
+      appState.workplace = item;
+      elements.workplaceSearch.value = item.name;
+      clearSearchResults();
+      renderSelectedWorkplace();
+      renderTransport();
+      renderBudget();
+      updateSummary();
+      updateMapForWorkplace();
+      renderAiFlow();
+    }
+
+    function updateMapForWorkplace() {
+      if (!map || !appState.workplace) return;
+      clearMapListings();
+      elements.mapEmpty.classList.add("hidden");
+      if (workplaceMarker) workplaceMarker.setMap(null);
+      const position = new kakao.maps.LatLng(appState.workplace.lat, appState.workplace.lng);
+      workplaceMarker = new kakao.maps.Marker({
+        map,
+        position,
+        image: buildMarkerImage("#111827", "#ffffff", 40, "직", "rgba(17, 24, 39, 0.16)"),
+      });
+      map.setCenter(position);
+      map.setLevel(5);
+    }
+
+    function togglePanel(target) {
+      if (target === "filter") {
+        elements.filterPanel.classList.toggle("collapsed");
+        return;
+      }
+      if (target === "ai") {
+        if (!appState.aiPanelEnabled) return;
+        if (elements.aiPanel.classList.contains("hidden")) {
+          openAiPanel();
+          return;
+        }
+        elements.aiPanel.classList.add("collapsed");
+        syncAiPanelToggleState();
+        window.setTimeout(() => {
+          if (elements.aiPanel.classList.contains("collapsed")) {
+            elements.aiPanel.classList.add("hidden");
+            syncAiPanelToggleState();
+          }
+        }, 220);
+      }
+    }
+
+    function syncAiPanelToggleState() {
+      const shouldShowReopen = appState.aiPanelEnabled
+        && (elements.aiPanel.classList.contains("hidden") || elements.aiPanel.classList.contains("collapsed"));
+      elements.aiReopenButton.classList.toggle("hidden", !shouldShowReopen);
+    }
+    function bindRelaxationButtons() {
+      elements.resultsBody.querySelectorAll("[data-relax-field]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const field = button.dataset.relaxField;
+          const rawValue = button.dataset.relaxValue;
+          const value = Number(rawValue);
+          if (field === "max_commute_minutes" && appState.primaryMode) {
+            appState.commuteLimits[appState.primaryMode] = value;
+            renderTransport();
+          }
+          if (field === "deposit_max") {
+            appState.depositMax = value;
+            renderBudget();
+          }
+          if (field === "rent_max") {
+            appState.rentMax = value;
+            renderBudget();
+          }
+          if (field === "add_secondary_mode" && rawValue) {
+            if (!appState.selectedModes.includes(rawValue)) {
+              appState.selectedModes.push(rawValue);
+            }
+            renderTransport();
+          }
+          if (field === "include_walkable_candidates") {
+            requestRecommendations();
+            return;
+          }
+          updateSummary();
+          requestRecommendations();
+        });
+      });
+    }
+
+    function buildQueryText(includeAiText = true) {
+      return includeAiText ? getAiUserText() : "";
+    }
+
+    function buildRecommendationUrl(includeAiText = true, withLlm = true) {
+      syncAiParsedStateFromFlow();
+      const params = new URLSearchParams();
+      const carTimeProfile = getCarTimeProfile();
+      params.set("workplace_address", appState.workplace.address);
+      params.set("workplace_lat", appState.workplace.lat);
+      params.set("workplace_lng", appState.workplace.lng);
+      params.set("query_text", includeAiText ? buildQueryText(true) : "");
+      params.set("deal_type", appState.dealType || "");
+      params.set("transport_mode", appState.primaryMode);
+      params.set("deposit_max", String(appState.depositMax));
+      params.set("rent_max", String(appState.rentMax));
+      params.set("max_commute_minutes", String(appState.commuteLimits[appState.primaryMode]));
+      const transportJson = {
+        primary_mode: appState.primaryMode,
+        secondary_modes: appState.selectedModes.filter((item) => item !== appState.primaryMode),
+        transit_detail: [],
+        commute_limits: appState.commuteLimits,
+      };
+      if (carTimeProfile) {
+        transportJson.car_time_profile = carTimeProfile;
+      }
+      params.set("transport_json", JSON.stringify(transportJson));
+      if (carTimeProfile) {
+        params.set("car_time_profile_json", JSON.stringify(carTimeProfile));
+        params.set("car_time_profile", carTimeProfile.trip_type || "");
+        params.set("car_trip_type", carTimeProfile.trip_type || "");
+        params.set("car_route_direction", carTimeProfile.route_direction || "");
+        params.set("car_route_time_basis", carTimeProfile.time_basis || "");
+        params.set("selected_car_time", carTimeProfile.selected_car_time || carTimeProfile.time || "");
+      }
+      params.set("soft_preferences_json", JSON.stringify(appState.aiParsedState.soft_preferences || {}));
+      params.set("geo_constraints_json", JSON.stringify(appState.aiParsedState.geo_constraints || {}));
+      params.set("tradeoff_policy_json", JSON.stringify(appState.aiParsedState.tradeoff_policy || {}));
+      params.set("living_preferences_json", JSON.stringify(appState.aiParsedState.living_preferences || {}));
+      params.set("unsupported_preferences_json", JSON.stringify(appState.aiParsedState.unsupported_preferences || []));
+      params.set("priority_focus", appState.aiParsedState.priority_focus || "none");
+      params.set("reference_preferences_json", JSON.stringify(appState.aiParsedState.reference_preferences || []));
+      params.set("with_llm", withLlm ? "true" : "false");
+      params.set("route_preferences_json", JSON.stringify(appState.aiParsedState.route_preferences || {}));
+      return `/api/recommendations?${params.toString()}`;
+    }
+
+    function renderResults(payload) {
+      const recommendations = (payload.recommendations || []).map((item) => ({
+        ...item,
+        final_reason: compactReasonText(item.final_reason || item.reason || "추천 이유를 불러오지 못했습니다."),
+      })).slice(0, 5);
+      const meta = payload.meta || {};
+      const suggestions = meta.relaxation_suggestions || [];
+      const parsedNotice = buildParsedQueryNotice(meta);
+      clearMapListings();
+      appState.hasRecommendations = true;
+      appState.recommendations = recommendations;
+      if (!payload.__preserveVisible) {
+        appState.visibleRecommendationCount = 5;
+        appState.selectedRecommendationIndex = null;
+        appState.expandedRouteIndex = null;
+        appState.expandedReasonIndex = null;
+      }
+      switchLeftTab("recommend");
+
+      if (!recommendations.length) {
+        elements.resultsBody.className = "";
+        elements.resultsBody.innerHTML = parsedNotice + buildEmptyStateHtml(meta, suggestions);
+        elements.resultCount.textContent = "추천 0개";
+        renderDebugSummary(meta);
+        bindRelaxationButtons();
+        return;
+      }
+
+      const visibleItems = buildVisibleRecommendationCards(recommendations, 5);
+      const cards = visibleItems.map((item, index) => {
+        const selected = appState.selectedRecommendationIndex === index ? " selected" : "";
+        const showRouteDetails = item.route_type !== "car" && Boolean((item.steps || []).length || item.secondary_transit || item.secondary_car || item.route_type);
+        const routeDetails = showRouteDetails && appState.expandedRouteIndex === index ? buildRouteDetailsHtml(item) : "";
+        const showReasonDetails = hasReasonDetails(item);
+        const expandedReason = appState.expandedReasonIndex === index;
+        const summaryReason = cardSummaryText(item);
+        const reasonChips = buildReasonSummaryChips(item);
+        const livingChips = buildLivingSummaryChips(item);
+        const reasonDetails = expandedReason ? buildReasonDetailRows(item) : "";
+        const optionList = buildPriceOptionList(item);
+        const debugParts = [];
+        if (DEBUG_MODE && item.route_provider) debugParts.push(item.route_provider);
+        if (DEBUG_MODE && item.car_route_requested_provider && item.car_route_provider && item.car_route_requested_provider !== item.car_route_provider) {
+          debugParts.push(`${item.car_route_requested_provider}→${item.car_route_provider}`);
+        }
+        if (DEBUG_MODE && item.car_route_time_label) debugParts.push(item.car_route_time_label);
+        if (DEBUG_MODE && item.car_route_time_basis) debugParts.push(item.car_route_time_basis);
+        if (DEBUG_MODE && item.route_source) debugParts.push(item.route_source);
+        const debugBadge = debugParts.length ? `<span class="debug-badge">${debugParts.join(" / ")}</span>` : "";
+        return `
+        <div class="result-card${selected}" data-rec-index="${index}">
+          <div class="result-head">
+            <div class="result-title-wrap">
+              <h3>${item.display_rank || item.rank}. ${formatDisplayTitle(item)}</h3>
+              <span class="type-badge">${item.house_type || "주택"}</span>
+              ${debugBadge}
+            </div>
+          </div>
+          <div class="meta-line">${item.address}</div>
+          <div class="price-line">${formatPrice(item)} · ${formatArea(item)}</div>
+          ${formatVariantNote(item) ? `<div class="variant-note">${formatVariantNote(item)}</div>` : ""}
+          ${optionList ? `<div class="meta-line">${optionList}</div>` : ""}
+          ${secondaryRouteText(item) ? `<div class="meta-line">${secondaryRouteText(item)}</div>` : ""}
+          ${hasSelectedLivingCategories(item) && livingSummaryText(item) ? `<div class="meta-line">${livingSummaryText(item)}</div>` : ""}
+          ${summaryReason ? `<div class="summary-line">${escapeHtml(summaryReason)}</div>` : ""}
+          ${showReasonDetails ? `
+            <div class="reason-panel">
+              ${reasonChips ? `
+                <div class="reason-summary-stack">
+                  <div class="reason-summary-section">
+                    <div class="reason-summary-heading">통근 요약</div>
+                    <div class="reason-chip-row">${reasonChips}</div>
+                  </div>
+                  ${livingChips ? `
+                    <div class="reason-summary-section">
+                      <div class="reason-summary-heading">생활 편의</div>
+                      <div class="reason-chip-row">${livingChips}</div>
+                    </div>
+                  ` : ""}
+                </div>
+              ` : ""}
+            </div>
+          ` : ""}
+          <div class="result-actions">
+            ${showReasonDetails ? `<button type="button" class="secondary-btn result-secondary-btn" data-reason-index="${index}">${expandedReason ? "추천 이유 접기" : "추천 이유 보기"}</button>` : ""}
+            ${showRouteDetails ? `<button type="button" class="secondary-btn result-primary-btn" data-route-index="${index}">${appState.expandedRouteIndex === index ? "상세 경로 닫기" : "상세 경로 보기"}</button>` : ""}
+          </div>
+          ${expandedReason ? `<div class="reason-detail-list">${reasonDetails}</div>` : ""}
+          ${routeDetails}
+        </div>`;
+      }).join("");
+      const countNotice = buildResultsNoticeHtml(recommendations, meta, suggestions);
+      const aiButton = `<div class="load-more-wrap"><button type="button" id="adjust-ai-btn" class="secondary-btn">조건 더 조정하기</button></div>`;
+      elements.resultsBody.className = "result-list";
+      elements.resultsBody.innerHTML = parsedNotice + countNotice + cards + aiButton;
+      elements.resultsBody.__visibleItems = visibleItems;
+      elements.resultsBody.__renderPayload = payload;
+      elements.resultsBody.__renderRecommendations = recommendations;
+      elements.resultCount.textContent = `추천 ${recommendations.length}개`;
+      renderDebugSummary(meta);
+
+      visibleItems.forEach((item, index) => {
+        if (!map) return;
+        const marker = new kakao.maps.Marker({
+          map,
+          position: new kakao.maps.LatLng(item.lat, item.lng),
+          image: buildMarkerImage("#2b6ef3", "#ffffff", 38, String(index + 1), "rgba(43, 110, 243, 0.16)"),
+        });
+        marker.__recIndex = index;
+        kakao.maps.event.addListener(marker, "click", () => {
+          selectRecommendation(index, item);
+        });
+        listingMarkers.push(marker);
+      });
+
+      fitMapToVisibleResults(visibleItems);
+
+      elements.resultsBody.querySelectorAll('.result-card[data-rec-index]').forEach((card) => {
+        card.addEventListener('click', () => {
+          const index = Number(card.dataset.recIndex);
+          const item = visibleItems[index];
+          if (!item) return;
+          selectRecommendation(index, item);
+        });
+      });
+
+      elements.resultsBody.querySelectorAll('[data-route-index]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const index = Number(button.dataset.routeIndex);
+          const item = visibleItems[index];
+          if (!item) return;
+          selectRecommendation(index, item);
+          appState.expandedRouteIndex = appState.expandedRouteIndex === index ? null : index;
+          renderResults({ ...payload, recommendations, __preserveVisible: true });
+        });
+      });
+
+      elements.resultsBody.querySelectorAll('[data-reason-index]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const index = Number(button.dataset.reasonIndex);
+          appState.expandedReasonIndex = appState.expandedReasonIndex === index ? null : index;
+          renderResults({ ...payload, recommendations, __preserveVisible: true });
+        });
+      });
+
+      const adjustAiButton = document.getElementById('adjust-ai-btn');
+      if (adjustAiButton) adjustAiButton.addEventListener('click', openAiPanel);
+
+      if (payload.__preserveVisible && appState.selectedRecommendationIndex != null) {
+        const selectedItem = visibleItems[appState.selectedRecommendationIndex];
+        if (selectedItem) {
+          drawRouteOnMap(selectedItem);
+          renderLivingFacilitiesOnMap(selectedItem);
+        }
+      }
+    }
+
+    async function requestRecommendations(options = {}) {
+      const { includeAiText = true, withLlm = true, openAiAfter = false } = options;
+      if (!appState.workplace) {
+        alert("직장이나 학교를 먼저 선택해 주세요.");
+        return;
+      }
+      if (!appState.primaryMode) {
+        alert("이동수단을 먼저 선택해 주세요.");
+        return;
+      }
+      appState.hasRecommendations = true;
+      switchLeftTab("recommend");
+      if (openAiAfter) openAiPanel();
+      elements.resultCount.textContent = "";
+      elements.resultsBody.className = "empty-state";
+      elements.resultsBody.textContent = "조건에 맞는 매물을 찾는 중입니다.";
+      try {
+        const response = await fetch(buildRecommendationUrl(includeAiText, withLlm));
+        const payload = await response.json();
+        if (!response.ok) {
+          const message = payload?.meta?.message || payload?.error || "추천 결과를 불러오지 못했습니다.";
+          renderDebugSummary(payload?.meta || {});
+          elements.resultsBody.innerHTML = `<div class="empty-state"><strong>${message}</strong><div class="meta-line">잠시 뒤 다시 시도해 주세요.</div></div>`;
+          return;
+        }
+        renderResults(payload);
+      } catch (error) {
+        renderDebugSummary({});
+        elements.resultsBody.innerHTML = `<div class="empty-state"><strong>추천 결과를 불러오지 못했습니다.</strong><div class="meta-line">잠시 뒤 다시 시도해 주세요.</div></div>`;
+      }
+    }
+
+    function initInputs() {
+      elements.depositInput.value = DEFAULTS.deposit;
+      elements.rentInput.value = DEFAULTS.rent;
+      elements.depositInput.addEventListener("input", () => {
+        appState.depositMax = normalizeValue(elements.depositInput.value, 100, DEFAULTS.deposit);
+        updateSummary();
+      });
+      elements.depositInput.addEventListener("blur", () => {
+        appState.depositMax = normalizeValue(elements.depositInput.value, 100, DEFAULTS.deposit);
+        elements.depositInput.value = appState.depositMax;
+        updateSummary();
+      });
+      elements.rentInput.addEventListener("input", () => {
+        appState.rentMax = normalizeValue(elements.rentInput.value, 5, DEFAULTS.rent);
+        updateSummary();
+      });
+      elements.rentInput.addEventListener("blur", () => {
+        appState.rentMax = normalizeValue(elements.rentInput.value, 5, DEFAULTS.rent);
+        elements.rentInput.value = appState.rentMax;
+        updateSummary();
+      });
+
+      document.querySelectorAll(".step-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = button.dataset.stepTarget;
+          const step = Number(button.dataset.step);
+          if (target === "deposit") {
+            appState.depositMax = Math.max(0, normalizeValue(appState.depositMax + step, 100, DEFAULTS.deposit));
+            elements.depositInput.value = appState.depositMax;
+          } else if (target === "rent") {
+            appState.rentMax = Math.max(0, normalizeValue(appState.rentMax + step, 5, DEFAULTS.rent));
+            elements.rentInput.value = appState.rentMax;
+          }
+          updateSummary();
+        });
+      });
+    }
+
+    function initEvents() {
+      bindResultsDelegation();
+      elements.searchButton.addEventListener("click", searchWorkplaces);
+      elements.workplaceSearch.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          searchWorkplaces();
+        }
+      });
+      document.querySelectorAll(".transport-chip").forEach((button) => {
+        button.addEventListener("click", () => toggleMode(button.dataset.mode));
+      });
+      document.querySelectorAll(".primary-choice").forEach((button) => {
+        button.addEventListener("click", () => selectPrimaryMode(button.dataset.primary));
+      });
+      document.querySelectorAll(".deal-gate-btn").forEach((button) => {
+        button.addEventListener("click", () => selectDealType(button.dataset.deal));
+      });
+      document.querySelectorAll(".filter-tab").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (button.dataset.deal === "recommend") {
+            switchLeftTab("recommend");
+            return;
+          }
+          selectDealType(button.dataset.deal);
+        });
+      });
+      const toggleFilterBtn = document.getElementById("toggle-filter-panel");
+      if (toggleFilterBtn) toggleFilterBtn.addEventListener("click", () => togglePanel("filter"));
+      if (elements.aiReopenButton) elements.aiReopenButton.addEventListener("click", openAiPanel);
+      elements.quickRecommendButton.addEventListener("click", () => requestRecommendations({ includeAiText: false, withLlm: true }));
+      if (elements.parseAiButton) elements.parseAiButton.addEventListener("click", runAiParse);
+      if (elements.queryInput) elements.queryInput.addEventListener("input", () => {
+        appState.queryText = elements.queryInput.value;
+        syncAiParsedStateFromFlow();
+        scheduleParsedQueryPreview();
+        renderAiFlow();
+      });
+    }
+
+    function initMap() {
+      if (!(window.kakao && kakao.maps)) return;
+      map = new kakao.maps.Map(document.getElementById("map"), {
+        center: new kakao.maps.LatLng(37.5665, 126.9780),
+        level: 8,
+      });
+    }
+
+    function startApp() {
+      initInputs();
+      initEvents();
+      initMap();
+      renderDealSelection();
+      resetResults();
+      updateSummary();
+      renderTransport();
+      renderBudget();
+      renderAiFlow();
+      scheduleParsedQueryPreview();
+    }
+  </script>
+  {% if kakao_js_key %}
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_js_key }}&autoload=false"
+    onload="kakao.maps.load(noOp); kakao.maps.load(startApp);"></script>
+  {% else %}
+  <script>startApp();</script>
+  {% endif %}
+</body>
+
+</html>

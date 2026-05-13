@@ -1,0 +1,344 @@
+[
+  {
+    "name": "도보권 후보 보호 테스트",
+    "type": "walkable_protection",
+    "workplace_address": "연세대학교 신촌캠퍼스",
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": []
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 25,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    },
+    "expect": {
+      "top_n": 5,
+      "min_walkable": 1
+    }
+  },
+  {
+    "name": "가까운 후보 vs 먼 저렴한 후보 테스트",
+    "type": "near_vs_far_tiebreak",
+    "workplace_address": "연세대학교 신촌캠퍼스",
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "car",
+        "secondary_modes": []
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 30,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    },
+    "expect": {
+      "near_match": "마포",
+      "far_match": "구로"
+    }
+  },
+  {
+    "name": "먼 후보 역전 허용 테스트",
+    "type": "far_overtake_allowed",
+    "workplace_address": "연세대학교 신촌캠퍼스",
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "car",
+        "secondary_modes": []
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 30,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    },
+    "expect": {
+      "near_match": "마포",
+      "far_match": "구로"
+    }
+  },
+  {
+    "name": "비정상 자동차 캐시 테스트",
+    "type": "invalid_car_cache"
+  },
+  {
+    "name": "대중교통 도보권 전환 테스트",
+    "type": "transit_walkable_conversion",
+    "workplace_address": "연세대학교 신촌캠퍼스",
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": []
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 10,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    }
+  },
+  {
+    "name": "도보 후보 추천 이유 테스트",
+    "type": "walkable_explanation_terms",
+    "workplace_address": "연세대학교 신촌캠퍼스",
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": []
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 25,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    }
+  },
+  {
+    "name": "car_explanation_terms",
+    "type": "car_explanation_terms",
+    "workplace_address": "Seoul Center",
+    "workplace": {
+      "name": "Test Workplace",
+      "address": "Seoul Center",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "car",
+        "secondary_modes": []
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 30,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    }
+  },
+  {
+    "name": "car_time_profile_morning",
+    "type": "car_time_profile",
+    "workplace_address": "Seoul Center",
+    "workplace": {
+      "name": "Test Workplace",
+      "address": "Seoul Center",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "car",
+        "secondary_modes": []
+      },
+      "car_time_profile": {
+        "enabled": true,
+        "trip_type": "commute_to_work",
+        "time_basis": "departure",
+        "time": "08:00",
+        "route_direction": "to_work",
+        "selected_car_time": "08:00",
+        "prediction_type": "departure",
+        "prediction_time": "2026-05-13T08:00:00+0900"
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 30,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    },
+    "expect": {
+      "profile_key": "weekday_morning_8",
+      "trip_type": "commute_to_work",
+      "selected_car_time": "08:00",
+      "route_direction": "to_work",
+      "route_provider": "TMAP_TIME_MACHINE",
+      "requested_provider": "TMAP_TIME_MACHINE",
+      "time_label_contains": "평일 오전 8시 출근",
+      "reason_term_supported": "평일 오전 8시 출근 기준으로 계산했어요.",
+      "reason_term_unsupported": "선택한 시간 기준은 추천 조건으로 저장했지만",
+      "time": "08:00",
+      "prediction_type": "departure",
+      "prediction_time": "2026-05-13T08:00:00+0900"
+    }
+  },
+  {
+    "name": "car_time_profile_evening",
+    "type": "car_time_profile",
+    "workplace_address": "Seoul Center",
+    "workplace": {
+      "name": "Test Workplace",
+      "address": "Seoul Center",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "car",
+        "secondary_modes": []
+      },
+      "car_time_profile": {
+        "enabled": true,
+        "trip_type": "commute_from_work",
+        "time_basis": "departure",
+        "time": "18:00",
+        "route_direction": "from_work",
+        "selected_car_time": "18:00",
+        "prediction_type": "departure",
+        "prediction_time": "2026-05-13T18:00:00+0900"
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 30,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    },
+    "expect": {
+      "profile_key": "weekday_evening_6",
+      "trip_type": "commute_from_work",
+      "selected_car_time": "18:00",
+      "route_direction": "from_work",
+      "route_provider": "TMAP_TIME_MACHINE",
+      "requested_provider": "TMAP_TIME_MACHINE",
+      "time_label_contains": "평일 오후 6시 퇴근",
+      "reason_term_supported": "평일 오후 6시 퇴근 기준으로 계산했어요.",
+      "reason_term_unsupported": "선택한 시간 기준은 추천 조건으로 저장했지만",
+      "time": "18:00",
+      "prediction_type": "departure",
+      "prediction_time": "2026-05-13T18:00:00+0900"
+    }
+  },
+  {
+    "name": "car_time_profile_custom_to_work_0930",
+    "type": "car_time_profile",
+    "workplace_address": "Seoul Center",
+    "workplace": {
+      "name": "Test Workplace",
+      "address": "Seoul Center",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "car",
+        "secondary_modes": []
+      },
+      "car_time_profile": {
+        "enabled": true,
+        "trip_type": "commute_to_work",
+        "time_basis": "departure",
+        "time": "09:30",
+        "route_direction": "to_work",
+        "selected_car_time": "09:30",
+        "prediction_type": "departure",
+        "prediction_time": "2026-05-13T09:30:00+0900"
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 30,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    },
+    "expect": {
+      "profile_key": "custom",
+      "trip_type": "commute_to_work",
+      "selected_car_time": "09:30",
+      "route_direction": "to_work",
+      "route_provider": "TMAP_TIME_MACHINE",
+      "requested_provider": "TMAP_TIME_MACHINE",
+      "time_label_contains": "오전 9시 30분 출근",
+      "reason_term_supported": "사용자가 선택한 오전 9시 30분 출근 기준으로 계산했어요.",
+      "reason_term_unsupported": "선택한 시간 기준은 추천 조건으로 저장했지만",
+      "time": "09:30",
+      "prediction_type": "departure",
+      "prediction_time": "2026-05-13T09:30:00+0900"
+    }
+  },
+  {
+    "name": "car_time_profile_custom_from_work_1900",
+    "type": "car_time_profile",
+    "workplace_address": "Seoul Center",
+    "workplace": {
+      "name": "Test Workplace",
+      "address": "Seoul Center",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "car",
+        "secondary_modes": []
+      },
+      "car_time_profile": {
+        "enabled": true,
+        "trip_type": "commute_from_work",
+        "time_basis": "departure",
+        "time": "19:00",
+        "route_direction": "from_work",
+        "selected_car_time": "19:00",
+        "prediction_type": "departure",
+        "prediction_time": "2026-05-13T19:00:00+0900"
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 30,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    },
+    "expect": {
+      "profile_key": "custom",
+      "trip_type": "commute_from_work",
+      "selected_car_time": "19:00",
+      "route_direction": "from_work",
+      "route_provider": "TMAP_TIME_MACHINE",
+      "requested_provider": "TMAP_TIME_MACHINE",
+      "time_label_contains": "오후 7시 퇴근",
+      "reason_term_supported": "사용자가 선택한 오후 7시 퇴근 기준으로 계산했어요.",
+      "reason_term_unsupported": "선택한 시간 기준은 추천 조건으로 저장했지만",
+      "time": "19:00",
+      "prediction_type": "departure",
+      "prediction_time": "2026-05-13T19:00:00+0900"
+    }
+  },
+  {
+    "name": "car_time_profile_transit",
+    "type": "car_time_profile",
+    "workplace_address": "Seoul Center",
+    "workplace": {
+      "name": "Test Workplace",
+      "address": "Seoul Center",
+      "lat": 37.56433710667622,
+      "lng": 126.93893572124549
+    },
+    "selected_districts": [],
+    "request_state": {
+      "transport": {
+        "primary_mode": "transit",
+        "secondary_modes": []
+      },
+      "hard_constraints": {
+        "max_commute_minutes": 25,
+        "deposit_max": 1200,
+        "rent_max": 60
+      }
+    },
+    "expect": {
+      "no_car_time_profile": true
+    }
+  },
+  {
+    "name": "자동차 설명 품질 합성 검증",
+    "type": "synthetic_car_reason_quality"
+  }
+]

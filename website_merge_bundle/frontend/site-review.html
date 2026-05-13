@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>청년주택 후보지 예비검토 시스템</title>
+    <link rel="stylesheet" href="/css/common.css" />
+    <link rel="stylesheet" href="/css/site-review.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+  </head>
+  <body>
+        <div class="site-shell">
+      <header class="page-header">
+        <div class="title-block">
+          <span class="brand-logo-wrap" aria-hidden="true">
+            <img class="brand-logo" src="/assets/logo.png" alt="" />
+          </span>
+          <div class="title-copy">
+            <h1>청년주택 후보지 예비검토 시스템</h1>
+            <p>
+              역세권·용도지역·청년수요 데이터를 기반으로 청년주택 후보지를
+              예비 검토합니다.
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <section class="search-stage">
+        <form id="aiExploreForm" class="search-form">
+          <div class="search-head">
+            <label for="aiQuery" class="search-title">AI에게 원하는 후보를 요청하세요</label>
+            <button id="filterDrawerOpen" class="filter-trigger-button" type="button">
+              <span class="filter-trigger-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M6.5 4.75h9a2.75 2.75 0 0 1 2.75 2.75v10a2.75 2.75 0 0 1-2.75 2.75h-9A2.75 2.75 0 0 1 3.75 17.5v-10A2.75 2.75 0 0 1 6.5 4.75Z" />
+                  <path d="M8 9h6.75M8 12.25h8M8 15.5h4.5" />
+                </svg>
+              </span>
+              검토 조건 설정
+            </button>
+          </div>
+          <div class="search-input-row">
+            <input
+              id="aiQuery"
+              name="aiQuery"
+              class="search-input"
+              type="text"
+              placeholder="예: 동대문구에서 청년 수요 높은 역세권 후보 찾아줘"
+            />
+            <button class="primary-button" type="submit">후보 탐색</button>
+          </div>
+          <div id="activeConditionSummary" class="active-condition-summary hidden">
+            <span class="active-condition-label">적용 조건</span>
+            <span id="activeConditionText" class="active-condition-text"></span>
+          </div>
+        </form>
+      </section>
+
+      <div id="filterDrawerBackdrop" class="drawer-backdrop hidden"></div>
+      <aside id="filterDrawer" class="filter-drawer" aria-hidden="true">
+        <div class="filter-drawer-head">
+          <div>
+            <div class="filter-drawer-kicker">후보지 예비검토</div>
+            <h2>검토 조건 설정</h2>
+            <p>자치구, 후보 유형, 면적, 수요 기준을 조정해 검토 결과를 다시 정리합니다.</p>
+          </div>
+          <button id="filterDrawerClose" class="filter-drawer-close" type="button" aria-label="닫기">×</button>
+        </div>
+        <form id="advancedFilters" class="advanced-grid">
+          <label>
+            자치구
+            <select id="districtSelect" multiple></select>
+          </label>
+          <label>
+            후보 유형
+            <select id="candidateScope">
+              <option value="both">전체 후보</option>
+              <option value="land">신규 개발형</option>
+              <option value="building">기존 건축물 활용형</option>
+            </select>
+          </label>
+          <label>
+            역세권 범위
+            <select id="stationScope">
+              <option value="include_conditional">역세권 350m 포함</option>
+              <option value="core_only">역세권 250m 우선</option>
+              <option value="all">생활권 기반 전체 검토</option>
+            </select>
+          </label>
+          <label>
+            최소 면적(㎡)
+            <input id="minArea" type="number" min="0" step="10" placeholder="선택 사항" />
+          </label>
+          <label>
+            필지결합 검토
+            <select id="mergePreference">
+              <option value="include">포함</option>
+              <option value="exclude">제외</option>
+              <option value="merge_only">필지결합형만</option>
+            </select>
+          </label>
+          <label>
+            청년·1인가구 정책 수요
+            <select id="policyNeedFilter">
+              <option value="keep">전체</option>
+              <option value="high">높음 후보만</option>
+              <option value="high_or_medium">높음/보통 포함</option>
+            </select>
+          </label>
+          <label>
+            직장 인근 주거 수요
+            <select id="workerMarketFilter">
+              <option value="keep">전체</option>
+              <option value="high">높음 후보만</option>
+              <option value="high_or_medium">높음/보통 포함</option>
+            </select>
+          </label>
+        </form>
+        <div class="filter-drawer-actions">
+          <button id="filterResetButton" class="secondary-button" type="button">초기화</button>
+          <button id="filterApplyButton" class="primary-button" type="button">조건 적용</button>
+        </div>
+      </aside>
+
+      <section id="resultsSection" class="results-layout hidden">
+        <div class="map-panel card-surface">
+          <div class="panel-head">
+            <div>
+              <h3>후보 위치 지도</h3>
+              <p>서울 전체 후보 분포와 검색 결과 위치를 한눈에 확인합니다.</p>
+            </div>
+          </div>
+          <div id="siteReviewMap" class="map-frame"></div>
+        </div>
+
+        <aside class="list-panel card-surface">
+          <div class="panel-head">
+            <div>
+              <h3>예비 검토 후보</h3>
+              <p id="candidateCountText">조건에 맞는 후보를 불러오는 중입니다.</p>
+            </div>
+          </div>
+          <div id="candidateList" class="candidate-list"></div>
+        </aside>
+
+        <aside id="detailPanel" class="detail-panel card-surface">
+          <div class="panel-head">
+            <div>
+              <h3>후보지 검토 결과</h3>
+              <p>선택한 후보의 정책 적합성과 추가 검토사항을 확인합니다.</p>
+            </div>
+          </div>
+          <div id="candidateDetail" class="detail-empty">
+            후보를 선택하면 이 영역에 검토 결과가 표시됩니다.
+          </div>
+        </aside>
+      </section>
+
+      <section class="analysis-stage">
+        <details id="analysisGuide" class="analysis-panel">
+          <summary>분석 기준 보기</summary>
+          <div class="analysis-body">
+            <div class="analysis-head">
+              <h2>적용된 검토 조건</h2>
+              <div id="aiStatus" class="status-pill">질문을 해석하면 적용된 조건이 여기에 정리됩니다.</div>
+            </div>
+            <p class="analysis-note">
+              자연어 질의 해석 결과와 적용된 검토 기준, 우선 정렬 방향을 여기에서 확인할 수 있습니다.
+            </p>
+            <div id="conditionCards" class="condition-grid">
+              <div class="condition-empty">아직 해석된 조건이 없습니다. 검색을 실행하면 자세한 기준이 정리됩니다.</div>
+            </div>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      crossorigin=""
+    ></script>
+    <script src="/js/system-switcher.js"></script>
+    <script src="/js/site-review.js"></script>
+  </body>
+</html>

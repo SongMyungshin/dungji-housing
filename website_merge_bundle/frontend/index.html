@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>둥지 | 청년 주거 의사결정 지원 플랫폼</title>
+    <link rel="stylesheet" href="/css/common.css" />
+    <style>
+      .hub-page {
+        min-height: 100vh;
+        padding: 48px 24px;
+        background: linear-gradient(180deg, #f6f8ff 0%, #edf2ff 100%);
+      }
+      .hub-wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      .hub-hero {
+        margin-bottom: 34px;
+      }
+      .hub-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .hub-logo {
+        width: auto;
+        height: 72px;
+        display: block;
+        object-fit: contain;
+        flex: 0 0 auto;
+      }
+      .hub-kicker {
+        margin-bottom: 4px;
+        color: #5b6cff;
+        font-size: 0.98rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+      .hub-title {
+        font-size: 3.15rem;
+        line-height: 1.05;
+        font-weight: 800;
+        color: #1f2552;
+        margin: 0;
+      }
+      .hub-subtitle {
+        color: #5d6693;
+        font-size: 1.05rem;
+        line-height: 1.72;
+        margin: 0 0 8px;
+      }
+      .hub-helper {
+        color: #44527d;
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0;
+      }
+      .hub-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+      }
+      .hub-card {
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(91,108,255,0.12);
+        border-radius: 28px;
+        padding: 28px;
+        box-shadow: 0 20px 48px rgba(42, 56, 120, 0.08);
+      }
+      .hub-badge {
+        display: inline-flex;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #eef1ff;
+        color: #5b6cff;
+        font-weight: 700;
+        margin-bottom: 16px;
+      }
+      .hub-card h2 {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+        color: #1f2552;
+      }
+      .hub-card p {
+        color: #5d6693;
+        margin-bottom: 18px;
+      }
+      .hub-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 180px;
+        padding: 14px 18px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #6d44ff, #5b6cff);
+        color: #fff;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      @media (max-width: 960px) {
+        .hub-grid { grid-template-columns: 1fr; }
+        .hub-brand {
+          align-items: flex-start;
+        }
+        .hub-logo {
+          height: 60px;
+        }
+        .hub-title {
+          font-size: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="hub-page">
+      <section class="hub-wrap">
+        <header class="hub-hero">
+          <div class="hub-brand">
+            <img class="hub-logo" src="/assets/logo.png" alt="둥지 로고" />
+            <div>
+              <div class="hub-kicker">청년 주거 의사결정 지원 플랫폼</div>
+              <h1 class="hub-title">둥지</h1>
+            </div>
+          </div>
+          <p class="hub-subtitle">
+            개인 사용자용 집 추천과 공공기관용 청년주택 후보지 예비검토 서비스를
+            한 곳에서 제공합니다.
+          </p>
+          <p class="hub-helper">원하시는 서비스를 선택해주세요.</p>
+        </header>
+        <div class="hub-grid">
+          <article class="hub-card">
+            <div class="hub-badge">개인 사용자용</div>
+            <h2>집 추천 서비스</h2>
+            <p>직장·학교, 예산, 통근시간, 생활 인프라를 기준으로 거주 후보지를 추천하는 개인 사용자용 서비스입니다.</p>
+            <a class="hub-link" href="/housing.html">집 추천 서비스 보기</a>
+          </article>
+          <article class="hub-card">
+            <div class="hub-badge">공공기관용</div>
+            <h2>청년주택 후보지 예비검토</h2>
+            <p>일반재산 토지·건물 데이터를 바탕으로 정책 목적에 맞는 청년주택 후보지를 예비 검토하는 AI 검토 지원 서비스입니다.</p>
+            <a class="hub-link" href="/site-review.html">부지 예비검토 보기</a>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
