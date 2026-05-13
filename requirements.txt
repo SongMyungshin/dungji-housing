@@ -1,5 +1,9 @@
-flask
+Flask
 pandas
 requests
 python-dotenv
 google-generativeai
+jinja2
+pandas
+requests
+python-dotenv
